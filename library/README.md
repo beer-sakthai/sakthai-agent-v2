@@ -18,12 +18,16 @@ sakthai skills validate              # frontmatter check, exits 1 on errors
 ```
 library/
 ├── agent/          DESCRIPTION.md + sakthai-agent-* skills
+├── automation/     DESCRIPTION.md + sakthai-automation-* skills
+├── coding/         DESCRIPTION.md + sakthai-coding-* skills
 ├── devops/         DESCRIPTION.md + sakthai-devops-* skills
 ├── learning/       DESCRIPTION.md + sakthai-learning-* skills
 ├── llm/            DESCRIPTION.md + sakthai-llm-* skills
 ├── memory/         DESCRIPTION.md + sakthai-memory-* skills
 ├── observability/  DESCRIPTION.md + sakthai-observability-* skills
-└── safety/         DESCRIPTION.md + sakthai-safety-* skills
+├── research/       DESCRIPTION.md + sakthai-research-* skills
+├── safety/         DESCRIPTION.md + sakthai-safety-* skills
+└── security/       DESCRIPTION.md + sakthai-security-* skills
 ```
 
 ## Note on third-party skills
