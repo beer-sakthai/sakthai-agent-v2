@@ -78,11 +78,12 @@ bandit → pytest) → commit → push → **wait for CI green** → next.
 ## Phase 6 — Architecture cleanup ← CON #1, #4
 Goal: loop.py drops from ~700 to ~300 lines by extracting providers.
 
-- [ ] 6.1 — Extract providers: new `sakthai/agent/providers/` package with
-      `__init__.py` (Provider protocol), `anthropic.py`, `gemini.py`, `openai.py`.
-      Each module owns its _call_*, _to_*_messages, and retry decorator.
-      loop.py becomes pure orchestration.
-      (sakthai/agent/providers/*, sakthai/agent/loop.py, tests/test_agent_loop.py)
+- [x] 6.1 — Extract providers — 2026-06-15: new `sakthai/agent/providers/`
+      package (base.py owns Block/Response + retry + shared adapters;
+      anthropic/gemini/openai modules own their call + message adaptation;
+      __init__ owns detect_provider/build_client). loop.py is now orchestration
+      (823→369 lines) with back-compat shims so the import/patch surface is
+      unchanged. 239 tests green.
 - [ ] 6.2 — Integration test markers: add `@pytest.mark.integration` for tests
       that can optionally hit real Ollama/Anthropic endpoints. CI runs with
       `-m "not integration"`.

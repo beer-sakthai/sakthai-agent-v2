@@ -531,9 +531,10 @@ def test_is_retryable_classifies_errors() -> None:
 
 def test_with_retry_recovers_after_transient(monkeypatch: pytest.MonkeyPatch) -> None:
     import sakthai.agent.loop as loop_mod
+    import sakthai.agent.providers.base as base
 
-    monkeypatch.setattr(loop_mod, "_RETRY_WAIT_MULTIPLIER", 0.0)
-    monkeypatch.setattr(loop_mod, "_RETRY_WAIT_MAX", 0.0)
+    monkeypatch.setattr(base, "RETRY_WAIT_MULTIPLIER", 0.0)
+    monkeypatch.setattr(base, "RETRY_WAIT_MAX", 0.0)
 
     calls = {"n": 0}
 
@@ -549,9 +550,10 @@ def test_with_retry_recovers_after_transient(monkeypatch: pytest.MonkeyPatch) ->
 
 def test_with_retry_does_not_retry_non_retryable(monkeypatch: pytest.MonkeyPatch) -> None:
     import sakthai.agent.loop as loop_mod
+    import sakthai.agent.providers.base as base
 
-    monkeypatch.setattr(loop_mod, "_RETRY_WAIT_MULTIPLIER", 0.0)
-    monkeypatch.setattr(loop_mod, "_RETRY_WAIT_MAX", 0.0)
+    monkeypatch.setattr(base, "RETRY_WAIT_MULTIPLIER", 0.0)
+    monkeypatch.setattr(base, "RETRY_WAIT_MAX", 0.0)
 
     calls = {"n": 0}
 
@@ -567,10 +569,10 @@ def test_with_retry_does_not_retry_non_retryable(monkeypatch: pytest.MonkeyPatch
 def test_anthropic_call_retries_then_succeeds(
     store: MemoryStore, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    import sakthai.agent.loop as loop_mod
+    import sakthai.agent.providers.base as base
 
-    monkeypatch.setattr(loop_mod, "_RETRY_WAIT_MULTIPLIER", 0.0)
-    monkeypatch.setattr(loop_mod, "_RETRY_WAIT_MAX", 0.0)
+    monkeypatch.setattr(base, "RETRY_WAIT_MULTIPLIER", 0.0)
+    monkeypatch.setattr(base, "RETRY_WAIT_MAX", 0.0)
 
     class _FlakyMessages:
         def __init__(self) -> None:

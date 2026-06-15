@@ -1,0 +1,155 @@
+"""OpenAI-compatible / Ollama provider backend."""
+
+from __future__ import annotations
+
+import json
+from typing import Any
+
+from ..tools import Tool
+from ..usage import extract_usage
+from .base import AgentError, Block, Response, block_field, logger, with_retry
+
+
+def to_openai_messages(system: str, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Adapt the provider-agnostic message list to the OpenAI chat schema."""
+    openai_msgs: list[dict[str, Any]] = [{"role": "system", "content": system}]
+
+    for msg in messages:
+        role = msg["role"]
+        content = msg["content"]
+
+        if isinstance(content, str):
+            openai_msgs.append({"role": role, "content": content})
+        elif isinstance(content, list):
+            if role == "assistant":
+                text_content = ""
+                tool_calls = []
+                for block in content:
+                    block_type = block_field(block, "type")
+                    if block_type == "text":
+                        text_content += block_field(block, "text")
+                    elif block_type == "tool_use":
+                        tool_calls.append(
+                            {
+                                "id": block_field(block, "id"),
+                                "type": "function",
+                                "function": {
+                                    "name": block_field(block, "name"),
+                                    "arguments": json.dumps(block_field(block, "input", {})),
+                                },
+                            }
+                        )
+                item: dict[str, Any] = {"role": "assistant"}
+                item["content"] = text_content or None
+                if tool_calls:
+                    item["tool_calls"] = tool_calls
+                openai_msgs.append(item)
+            else:
+                for block in content:
+                    block_type = block_field(block, "type")
+                    if block_type == "tool_result":
+                        openai_msgs.append(
+                            {
+                                "role": "tool",
+                                "tool_call_id": block_field(block, "tool_use_id"),
+                                "content": block_field(block, "content"),
+                            }
+                        )
+                    else:
+                        text = block_field(block, "text")
+                        if text:
+                            openai_msgs.append({"role": "user", "content": text})
+    return openai_msgs
+
+
+def call_openai_compat(
+    client: Any,
+    model: str,
+    system: str,
+    tools: tuple[Tool, ...],
+    messages: list[dict[str, Any]],
+    iteration: int,
+) -> Response:
+    """Make one OpenAI-compatible chat completion, normalised to :class:`Response`."""
+    openai_tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": t.name,
+                "description": t.description,
+                "parameters": t.input_schema,
+            },
+        }
+        for t in tools
+    ]
+
+    payload: dict[str, Any] = {
+        "model": model,
+        "messages": to_openai_messages(system, messages),
+        "stream": False,
+    }
+    if openai_tools:
+        payload["tools"] = openai_tools
+
+    if hasattr(client, "post"):
+
+        def _do_request() -> dict[str, Any]:
+            resp = client.post("/chat/completions", json=payload)
+            resp.raise_for_status()
+            return resp.json()  # type: ignore[no-any-return]
+
+    elif hasattr(client, "chat") and hasattr(client.chat, "completions"):
+
+        def _do_request() -> dict[str, Any]:
+            raw = client.chat.completions.create(**payload)
+            return raw.model_dump()  # type: ignore[no-any-return]
+
+    else:
+        raise AgentError(f"Unsupported client type: {type(client)}")
+
+    try:
+        data = with_retry(_do_request)
+    except Exception as exc:
+        logger.error("OpenAI-compatible API call failed: %s", exc)
+        raise AgentError(f"OpenAI-compatible API call failed: {exc}") from exc
+
+    choices = data.get("choices") or []
+    if not choices:
+        raise AgentError("OpenAI returned no choices.")
+    choice = choices[0]
+    message_data = choice.get("message") or {}
+    content_text = message_data.get("content") or ""
+    tool_calls_data = message_data.get("tool_calls") or []
+    finish_reason = choice.get("finish_reason")
+
+    blocks: list[Any] = []
+    if content_text:
+        blocks.append(Block("text", text=content_text))
+
+    has_tool_call = False
+    for idx, tc in enumerate(tool_calls_data):
+        fn = tc.get("function") or {}
+        fn_name = fn.get("name")
+        if not isinstance(fn_name, str):
+            fn_name = ""
+        fn_args_raw = fn.get("arguments") or "{}"
+        if isinstance(fn_args_raw, str):
+            try:
+                fn_args = json.loads(fn_args_raw)
+            except Exception:
+                fn_args = {}
+        else:
+            fn_args = fn_args_raw
+
+        has_tool_call = True
+        tool_id = tc.get("id") or f"call_{fn_name}_{iteration}_{idx}"
+        blocks.append(Block("tool_use", id=tool_id, name=fn_name, input=dict(fn_args or {})))
+
+    if has_tool_call:
+        stop_reason = "tool_use"
+    elif finish_reason == "length":
+        stop_reason = "max_tokens"
+    else:
+        stop_reason = "end_turn"
+
+    return Response(stop_reason=stop_reason, content=blocks, usage=extract_usage(data))
