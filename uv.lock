@@ -1888,6 +1888,7 @@ dependencies = [
     { name = "google-genai" },
     { name = "httpx" },
     { name = "pyyaml" },
+    { name = "tenacity" },
 ]
 
 [package.optional-dependencies]
@@ -1933,6 +1934,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4" },
     { name = "sakthai-agent", extras = ["dev", "dashboard"], marker = "extra == 'all'" },
     { name = "streamlit", marker = "extra == 'dashboard'", specifier = ">=1.36" },
+    { name = "tenacity", specifier = ">=8.0,<10.0" },
 ]
 provides-extras = ["dev", "dashboard", "all"]
 

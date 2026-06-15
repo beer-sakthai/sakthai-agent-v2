@@ -45,53 +45,81 @@ Living task list. Work top-to-bottom; check off with a dated one-line note when 
       it works with zero flags; `--no-mcp` to opt out — 2026-06-15: `sakthai run`
       wraps run_agent in connect_servers() (no-op when none configured), merges
       external tools into the loop; 2 CLI tests (autoload + --no-mcp). 198 passed.
-      (--with-skills lands with the skill-injection task below.)
 
 ## Phase 2 — Multi-runtime / local model (self-driving, no API key)
-- [x] OpenAI-compatible / Ollama provider (the ~7 touches: config env, auth
-      resolver, loop _detect/_build/_call_openai_compat, cli --provider choice) — 2026-06-15: added openai/ollama routing, _call_openai_compat, resolved credentials and base url, added cli choice, and verified via unit tests.
-- [x] Run-under-another-AI: ship ready-to-paste MCP configs for Claude CLI and
-      Gemini CLI; optionally expose the whole agent loop as one MCP tool so an
-      external AI can call it — 2026-06-15: added run_agent_loop tool to BUILTIN_TOOLS and included integration configs in docs.
-- [x] docs/plugins.md + docs/runtimes.md (connect any MCP/skill; run on Claude
-      CLI / Gemini CLI / Ollama) — 2026-06-15: created docs/plugins.md and docs/runtimes.md.
+- [x] OpenAI-compatible / Ollama provider — 2026-06-15
+- [x] Run-under-another-AI: run_agent_loop MCP tool — 2026-06-15
+- [x] docs/plugins.md + docs/runtimes.md — 2026-06-15
 
 ## Phase 3 — Hardening
-- [x] Hermetic tests for client (fake subprocess), registry, and the new
-      provider (fake httpx) — keep the no-network rule — 2026-06-15: added provider and tool tests to tests/test_agent_loop.py.
-- [x] Update CLAUDE.md / GEMINI.md / README / docs/architecture.md — 2026-06-15: updated documentation layers, commands, and options.
+- [x] Hermetic tests for client, registry, and new provider — 2026-06-15
+- [x] Update CLAUDE.md / GEMINI.md / README / docs/architecture.md — 2026-06-15
 
-## Phase 4 — Concurrency & safety hardening (con areas resolved)
-- [x] Concurrency Protection: enable SQLite WAL mode and secure write transactions via BEGIN IMMEDIATE — 2026-06-15: set BEGIN IMMEDIATE locks on all consolidation/import queries; WAL mode verified.
-- [x] Indirect Recursion Safety: environment-based loop guard to prevent nested runs — 2026-06-15: added SAKTHAI_AGENT_ACTIVE environment flag and ValueError loop guard.
-- [x] Context Token Pruning: prune intermediate loop history in run_agent_loop outputs — 2026-06-15: added prune_history parameter to the tool schema/handler.
+## Phase 4 — Concurrency & safety hardening
+- [x] SQLite WAL mode + BEGIN IMMEDIATE — 2026-06-15
+- [x] Indirect recursion safety guard — 2026-06-15
+- [x] Context token pruning for run_agent_loop — 2026-06-15
 
-## Phase 5 — Make it run (robustness + preflight)
-Goal: the agent runs dependably — clean errors instead of raw tracebacks, a
-zero-cost preflight, a hermetic proof the real CLI path runs, and resources that
-survive a real install. One task at a time: local gate (ruff → format → mypy →
-bandit → pytest) → commit → push to main → **wait for CI green** → next.
+## Phase 5 — Robustness (make the agent run reliably) ← CON #6, #8, #10
+Goal: the agent runs dependably — retry on transient failures, track costs,
+manage sessions. One task at a time: local gate (ruff → format → mypy →
+bandit → pytest) → commit → push → **wait for CI green** → next.
 
-- [ ] Task 1 — Robust provider/store construction: wrap the google/openai branches
-      of `_build_client` and the `MemoryStore()` init in `run_agent` so missing
-      creds / FS errors raise a clean `AgentError`, not a raw traceback. Tests for
-      forced-provider-no-creds and store-init failure. (sakthai/agent/loop.py,
-      tests/test_agent_loop.py)
-- [ ] Task 2 — Safe memory backup: `backup_memory()` raises a clear error when no
-      DB exists yet; `sakthai memory backup` surfaces it as a ClickException, not a
-      traceback. Test the no-DB path. (sakthai/memory/backup.py, sakthai/cli/memory.py,
-      tests/test_memory_aux.py)
-- [ ] Task 3 — Preflight `sakthai run --dry-run`: a `preflight()` helper resolves
-      provider + credential source + model + tool count with **no API call**;
-      `--dry-run` prints it and exits 0 when runnable. (sakthai/agent/loop.py,
-      sakthai/cli/agent.py, tests/test_agent_loop.py, tests/test_cli.py)
-- [ ] Task 4 — Hermetic end-to-end CLI smoke: drive the real `sakthai run` path via
-      CliRunner with an injected fake client + temp SAKTHAI_HOME; assert a session
-      log is written. No network, no cost. (tests/)
-- [ ] Task 5 — Package bundled resources: ship skills/, library/, data/ in sdist +
-      wheel (MANIFEST.in + setuptools) and make config.py resolve them for installed
-      and editable layouts. Test resources resolve. (pyproject.toml, MANIFEST.in,
-      sakthai/config.py, tests/)
+- [x] 5.1 — API retry with exponential backoff — 2026-06-15
+- [x] 5.2 — Token usage tracking — 2026-06-15
+- [ ] 5.3 — Session management CLI: `sakthai sessions list` / `show <id>` /
+      `clean --older-than 30d`. Reads the JSON logs _save_session_log already
+      writes. Register in CLI __init__.
+      (sakthai/cli/sessions.py, sakthai/cli/__init__.py, tests/test_sessions_cli.py)
+- [ ] 5.4 — Robust provider construction: wrap _build_client so missing creds
+      raise clean AgentError, not raw tracebacks. Test forced-provider-no-creds.
+      (sakthai/agent/loop.py, tests/test_agent_loop.py)
+- [ ] 5.5 — Safe memory backup: backup_memory() raises clear error when no DB
+      exists; CLI surfaces as ClickException. Test the no-DB path.
+      (sakthai/memory/backup.py, sakthai/cli/memory.py, tests/test_memory_aux.py)
+- [ ] 5.6 — Preflight `sakthai run --dry-run`: resolve provider + creds + model
+      + tool count with no API call; print and exit 0. No cost.
+      (sakthai/agent/loop.py, sakthai/cli/agent.py, tests/test_cli.py)
+
+## Phase 6 — Architecture cleanup ← CON #1, #4
+Goal: loop.py drops from ~700 to ~300 lines by extracting providers.
+
+- [ ] 6.1 — Extract providers: new `sakthai/agent/providers/` package with
+      `__init__.py` (Provider protocol), `anthropic.py`, `gemini.py`, `openai.py`.
+      Each module owns its _call_*, _to_*_messages, and retry decorator.
+      loop.py becomes pure orchestration.
+      (sakthai/agent/providers/*, sakthai/agent/loop.py, tests/test_agent_loop.py)
+- [ ] 6.2 — Integration test markers: add `@pytest.mark.integration` for tests
+      that can optionally hit real Ollama/Anthropic endpoints. CI runs with
+      `-m "not integration"`.
+      (pyproject.toml, .github/workflows/ci.yml, tests/test_integration.py)
+
+## Phase 7 — Streaming output ← CON #2, #3
+Goal: progressive token display instead of waiting for full response.
+
+- [ ] 7.1 — Streaming callback interface: add `on_token: Callable | None` param
+      to run_agent + provider call(). CLI `--stream` flag wires it to stdout.
+      (sakthai/agent/loop.py, sakthai/cli/agent.py)
+- [ ] 7.2 — Anthropic streaming: when on_token provided, use
+      client.messages.stream() and yield deltas.
+      (sakthai/agent/providers/anthropic.py, tests/test_streaming.py)
+- [ ] 7.3 — OpenAI-compat streaming: set `"stream": True`, parse SSE chunks,
+      yield deltas, accumulate tool_calls.
+      (sakthai/agent/providers/openai.py, tests/test_streaming.py)
+
+## Phase 8 — Dashboard & observability ← CON #9
+Goal: session history + token charts in the Streamlit dashboard.
+
+- [ ] 8.1 — Session data layer: `collect_session_data()` reads session JSONs,
+      parses task/model/tokens/timestamp, aggregates by day and model.
+      (sakthai/dashboard/data.py, tests/test_dashboard_sessions.py)
+- [ ] 8.2 — Dashboard UI: "Agent Activity" tab (session timeline), "Token Usage"
+      tab (cumulative chart by model), "Recent Sessions" section.
+      (sakthai/dashboard/app.py)
+
+## Phase 9 — Future (deferred to v3)
+- [ ] Google ADK / Vertex AI cloud agent port ← CON #5
+- [ ] Multi-user / multi-tenant database isolation ← CON #7
 
 ---
 
@@ -105,8 +133,7 @@ bandit → pytest) → commit → push to main → **wait for CI green** → nex
 - 2026-06-15 — Phase 1.3 done: MCP server manifest parsing + config discovery (192 passed).
 - 2026-06-15 — Phase 1.4 done: connect_servers wires external MCP tools into an agent run (196 passed).
 - 2026-06-15 — Phase 1.6 done: `sakthai run` auto-loads MCP servers from config; --no-mcp opt-out (198 passed).
-- 2026-06-15 — Phase 1.5 done: skill injection into the system prompt (--with-skills) (203 passed). **Phase 1 (plugin foundation) complete.**
-- 2026-06-15 — Phase 2 done: added OpenAI/Ollama provider, integration guides, run_agent_loop tool (207 passed). **Phase 2 complete.**
-- 2026-06-15 — Phase 3 done: hermetic tests for new provider and tools, strict mypy validation, updated architecture and configuration logs. **Phase 3 complete.**
-- 2026-06-15 — Phase 4 done: SQLite WAL mode/locks, indirect recursion loop guard, run_agent_loop context token pruning (209 passed). **Phase 4 complete.**
-- 2026-06-15 — Phase 5 roadmap written (make-it-run: robustness + preflight). Also folded in CLAUDE.md doc-accuracy fixes (registry/external-MCP/provider list; dropped stale scratch/ refs).
+- 2026-06-15 — Phase 1.5 done: skill injection into the system prompt (--with-skills) (203 passed). **Phase 1 complete.**
+- 2026-06-15 — Phase 2 done: OpenAI/Ollama provider, integration guides, run_agent_loop tool (207 passed). **Phase 2 complete.**
+- 2026-06-15 — Phase 3 done: hermetic tests, strict mypy, updated docs. **Phase 3 complete.**
+- 2026-06-15 — Phase 4 done: WAL mode/locks, recursion guard, token pruning (209 passed). **Phase 4 complete.**

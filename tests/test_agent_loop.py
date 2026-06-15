@@ -429,3 +429,164 @@ def test_run_agent_loop_pruning(store: MemoryStore, monkeypatch: pytest.MonkeyPa
     assert "inner success 2" in res_unpruned
     assert "Tool calls made in this loop:" in res_unpruned
     assert "- learn({'value': 'fact-abc'}) [success]" in res_unpruned
+
+
+# ---------- retry behaviour tests (Phase 5.1) ----------
+
+
+class _FailThenSucceedMessages:
+    """Simulates a transient failure followed by a successful response."""
+
+    def __init__(self, fail_exc: Exception, success_resp: _Resp) -> None:
+        self._fail_exc = fail_exc
+        self._success = success_resp
+        self.calls = 0
+
+    def create(self, **kwargs: object) -> _Resp:
+        self.calls += 1
+        if self.calls == 1:
+            raise self._fail_exc
+        return self._success
+
+
+class _FailThenSucceedClient:
+    def __init__(self, fail_exc: Exception, success_resp: _Resp) -> None:
+        self.messages = _FailThenSucceedMessages(fail_exc, success_resp)
+
+
+def test_anthropic_retry_on_rate_limit(store: MemoryStore) -> None:
+    """Verify RateLimitError is retried and succeeds on 2nd attempt."""
+    import anthropic as anth
+    import httpx
+
+    req = httpx.Request("POST", "https://api.anthropic.com")
+    resp = httpx.Response(429, request=req)
+    exc = anth.RateLimitError(
+        message="rate limited",
+        response=resp,
+        body=None,
+    )
+    client = _FailThenSucceedClient(
+        exc, _Resp("end_turn", [_Block(type="text", text="retry worked")])
+    )
+    result = run_agent("hi", client=client, store=store, provider="anthropic", max_iterations=1)
+    assert result.text == "retry worked"
+    assert client.messages.calls == 2  # 1 fail + 1 success
+
+
+def test_anthropic_no_retry_on_bad_request(store: MemoryStore) -> None:
+    """Verify BadRequestError (400) is NOT retried — fails immediately."""
+    import anthropic as anth
+    import httpx
+
+    req = httpx.Request("POST", "https://api.anthropic.com")
+    resp = httpx.Response(400, request=req)
+    exc = anth.BadRequestError(
+        message="bad request",
+        response=resp,
+        body=None,
+    )
+    client = _FailThenSucceedClient(
+        exc, _Resp("end_turn", [_Block(type="text", text="should not reach")])
+    )
+    with pytest.raises(AgentError, match="Anthropic API call failed"):
+        run_agent("hi", client=client, store=store, provider="anthropic", max_iterations=1)
+    assert client.messages.calls == 1  # no retry
+
+
+def test_anthropic_retry_on_connection_error(store: MemoryStore) -> None:
+    """Verify OSError (connection failure) is retried."""
+    client = _FailThenSucceedClient(
+        OSError("Connection reset"),
+        _Resp("end_turn", [_Block(type="text", text="reconnected")]),
+    )
+    result = run_agent("hi", client=client, store=store, provider="anthropic", max_iterations=1)
+    assert result.text == "reconnected"
+    assert client.messages.calls == 2
+
+
+# -- 5.1 API retry with exponential backoff -----------------------------
+
+
+class _StatusError(Exception):
+    """Stand-in for an SDK error carrying an HTTP status_code."""
+
+    def __init__(self, status_code: int) -> None:
+        super().__init__(f"status {status_code}")
+        self.status_code = status_code
+
+
+def test_is_retryable_classifies_errors() -> None:
+    import httpx
+
+    from sakthai.agent.loop import _is_retryable
+
+    assert _is_retryable(_StatusError(429)) is True
+    assert _is_retryable(_StatusError(503)) is True
+    assert _is_retryable(httpx.ConnectError("boom")) is True
+    assert _is_retryable(_StatusError(400)) is False
+    assert _is_retryable(_StatusError(404)) is False
+    assert _is_retryable(ValueError("nope")) is False
+
+
+def test_with_retry_recovers_after_transient(monkeypatch: pytest.MonkeyPatch) -> None:
+    import sakthai.agent.loop as loop_mod
+
+    monkeypatch.setattr(loop_mod, "_RETRY_WAIT_MULTIPLIER", 0.0)
+    monkeypatch.setattr(loop_mod, "_RETRY_WAIT_MAX", 0.0)
+
+    calls = {"n": 0}
+
+    def flaky() -> str:
+        calls["n"] += 1
+        if calls["n"] < 2:
+            raise _StatusError(503)
+        return "ok"
+
+    assert loop_mod._with_retry(flaky) == "ok"
+    assert calls["n"] == 2
+
+
+def test_with_retry_does_not_retry_non_retryable(monkeypatch: pytest.MonkeyPatch) -> None:
+    import sakthai.agent.loop as loop_mod
+
+    monkeypatch.setattr(loop_mod, "_RETRY_WAIT_MULTIPLIER", 0.0)
+    monkeypatch.setattr(loop_mod, "_RETRY_WAIT_MAX", 0.0)
+
+    calls = {"n": 0}
+
+    def bad_request() -> str:
+        calls["n"] += 1
+        raise _StatusError(400)
+
+    with pytest.raises(_StatusError):
+        loop_mod._with_retry(bad_request)
+    assert calls["n"] == 1
+
+
+def test_anthropic_call_retries_then_succeeds(
+    store: MemoryStore, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import sakthai.agent.loop as loop_mod
+
+    monkeypatch.setattr(loop_mod, "_RETRY_WAIT_MULTIPLIER", 0.0)
+    monkeypatch.setattr(loop_mod, "_RETRY_WAIT_MAX", 0.0)
+
+    class _FlakyMessages:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def create(self, **_kwargs: object) -> _Resp:
+            self.calls += 1
+            if self.calls < 2:
+                raise _StatusError(503)
+            return _Resp("end_turn", [_Block(type="text", text="recovered")])
+
+    class _FlakyClient:
+        def __init__(self) -> None:
+            self.messages = _FlakyMessages()
+
+    client = _FlakyClient()
+    result = run_agent("x", client=client, store=store, provider="anthropic")
+    assert result.text == "recovered"
+    assert client.messages.calls == 2

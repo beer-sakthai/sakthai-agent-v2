@@ -20,6 +20,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import anthropic
+import httpx
+import tenacity
 
 from ..auth import (
     AuthError,
@@ -32,6 +34,7 @@ from ..memory.store import MemoryStore
 from ..skills import render_skills_prompt_block
 from .registry import ToolRegistry
 from .tools import BUILTIN_TOOLS, Tool
+from .usage import UsageTracker, extract_usage
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +45,43 @@ DEFAULT_MAX_SECONDS: float | None = None  # opt-in wall-clock budget
 
 # stop_reasons that end the loop with a final answer.
 _TERMINAL_STOPS = frozenset({"end_turn", "max_tokens", "stop_sequence", "refusal"})
+
+# Transient-failure retry policy for provider API calls. The wait constants are
+# module-level so tests can zero them out to avoid real sleeps.
+_RETRY_ATTEMPTS = 3
+_RETRY_WAIT_MULTIPLIER = 0.5
+_RETRY_WAIT_MAX = 8.0
+_RETRYABLE_STATUS = frozenset({408, 409, 429, 500, 502, 503, 504})
+
+
+def _is_retryable(exc: BaseException) -> bool:
+    """True for transient API failures worth retrying (rate limit, 5xx, network)."""
+    if isinstance(exc, anthropic.APIConnectionError | httpx.TransportError | OSError):
+        return True
+    # HTTP status surfaced differently across SDKs: anthropic uses ``status_code``,
+    # google-genai uses ``code``, httpx exposes it on ``response``.
+    status: Any = getattr(exc, "status_code", None)
+    if status is None:
+        status = getattr(exc, "code", None)
+    if status is None:
+        status = getattr(getattr(exc, "response", None), "status_code", None)
+    return isinstance(status, int) and status in _RETRYABLE_STATUS
+
+
+def _with_retry(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+    """Call ``fn`` with exponential-backoff retries on transient failures.
+
+    Non-retryable errors (bad request, auth, not found) propagate on the first
+    attempt; the original exception is re-raised once attempts are exhausted.
+    """
+    retryer = tenacity.Retrying(
+        retry=tenacity.retry_if_exception(_is_retryable),
+        stop=tenacity.stop_after_attempt(_RETRY_ATTEMPTS),
+        wait=tenacity.wait_exponential(multiplier=_RETRY_WAIT_MULTIPLIER, max=_RETRY_WAIT_MAX),
+        reraise=True,
+    )
+    return retryer(fn, *args, **kwargs)
+
 
 SYSTEM_BASE = (
     "You are SakThai, a personal agent that lives in the user's terminal. You have "
@@ -64,6 +104,9 @@ class AgentResult:
     iterations: int
     stop_reason: str
     tool_calls: list[dict[str, Any]] = field(default_factory=list)
+    usage: dict[str, int] = field(
+        default_factory=lambda: {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
+    )
 
 
 class _Block:
@@ -88,9 +131,15 @@ class _Block:
 class _Response:
     """Normalised model response: a stop_reason plus a list of content blocks."""
 
-    def __init__(self, stop_reason: str, content: list[Any]) -> None:
+    def __init__(
+        self,
+        stop_reason: str,
+        content: list[Any],
+        usage: dict[str, int] | None = None,
+    ) -> None:
         self.stop_reason = stop_reason
         self.content = content
+        self.usage = usage or {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
 
 
 # -- prompt + tool execution --------------------------------------------
@@ -225,7 +274,8 @@ def _call_anthropic(
     messages: list[dict[str, Any]],
 ) -> Any:
     try:
-        return client.messages.create(
+        return _with_retry(
+            client.messages.create,
             model=model,
             max_tokens=max_tokens,
             system=system,
@@ -260,7 +310,8 @@ def _call_gemini(
         for t in tools
     ]
     try:
-        raw = client.models.generate_content(
+        raw = _with_retry(
+            client.models.generate_content,
             model=model,
             contents=_to_gemini_contents(messages),
             config=types.GenerateContentConfig(system_instruction=system, tools=declarations),
@@ -295,7 +346,8 @@ def _call_gemini(
         stop_reason = "max_tokens"
     else:
         stop_reason = "end_turn"
-    return _Response(stop_reason=stop_reason, content=blocks)
+    usage = extract_usage(raw)
+    return _Response(stop_reason=stop_reason, content=blocks, usage=usage)
 
 
 def _to_openai_messages(system: str, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -383,16 +435,24 @@ def _call_openai_compat(
     if openai_tools:
         payload["tools"] = openai_tools
 
-    try:
-        if hasattr(client, "post"):
+    if hasattr(client, "post"):
+
+        def _do_request() -> dict[str, Any]:
             resp = client.post("/chat/completions", json=payload)
             resp.raise_for_status()
-            data = resp.json()
-        elif hasattr(client, "chat") and hasattr(client.chat, "completions"):
+            return resp.json()  # type: ignore[no-any-return]
+
+    elif hasattr(client, "chat") and hasattr(client.chat, "completions"):
+
+        def _do_request() -> dict[str, Any]:
             raw = client.chat.completions.create(**payload)
-            data = raw.model_dump()
-        else:
-            raise AgentError(f"Unsupported client type: {type(client)}")
+            return raw.model_dump()  # type: ignore[no-any-return]
+
+    else:
+        raise AgentError(f"Unsupported client type: {type(client)}")
+
+    try:
+        data = _with_retry(_do_request)
     except Exception as exc:
         logger.error("OpenAI-compatible API call failed: %s", exc)
         raise AgentError(f"OpenAI-compatible API call failed: {exc}") from exc
@@ -443,7 +503,8 @@ def _call_openai_compat(
     else:
         stop_reason = "end_turn"
 
-    return _Response(stop_reason=stop_reason, content=blocks)
+    usage = extract_usage(data)
+    return _Response(stop_reason=stop_reason, content=blocks, usage=usage)
 
 
 # -- main loop -----------------------------------------------------------
@@ -501,6 +562,7 @@ def run_agent(
     skills_block = render_skills_prompt_block(skills) if skills else ""
     deadline = time.monotonic() + max_seconds if max_seconds is not None else None
 
+    usage_tracker = UsageTracker()
     try:
         for iteration in range(1, max_iterations + 1):
             if deadline is not None and time.monotonic() >= deadline:
@@ -510,12 +572,15 @@ def run_agent(
             system = _build_system(store, skills_block)
             if provider == "google":
                 response: Any = _call_gemini(client, model, system, tools, messages, iteration)
+                usage_tracker.record(**response.usage)
             elif provider == "openai":
                 response = _call_openai_compat(client, model, system, tools, messages, iteration)
+                usage_tracker.record(**response.usage)
             else:
                 response = _call_anthropic(
                     client, model, max_tokens, system, tool_schemas, messages
                 )
+                usage_tracker.record(**extract_usage(response))
 
             stop_reason = getattr(response, "stop_reason", "") or ""
             notify("iteration", {"n": iteration, "stop_reason": stop_reason})
@@ -526,6 +591,7 @@ def run_agent(
                     iterations=iteration,
                     stop_reason=stop_reason,
                     tool_calls=tool_calls,
+                    usage=usage_tracker.to_dict(),
                 )
                 _save_session_log(task, model, messages, result)
                 return result
@@ -541,6 +607,7 @@ def run_agent(
                     iterations=iteration,
                     stop_reason=stop_reason,
                     tool_calls=tool_calls,
+                    usage=usage_tracker.to_dict(),
                 )
                 _save_session_log(task, model, messages, result)
                 return result
@@ -686,6 +753,7 @@ def _save_session_log(task: str, model: str, messages: list[Any], result: AgentR
             "task": task,
             "model": model,
             "messages": _serialize_messages(messages),
+            "usage": result.usage,
             "result": {
                 "text": result.text,
                 "iterations": result.iterations,
