@@ -63,6 +63,62 @@ def to_openai_messages(system: str, messages: list[dict[str, Any]]) -> list[dict
     return openai_msgs
 
 
+def _stream_chat(
+    client: Any, payload: dict[str, Any], on_token: Callable[[str], None]
+) -> dict[str, Any]:
+    """Consume an OpenAI-compatible SSE stream into a non-streaming response dict.
+
+    Text deltas are forwarded to ``on_token`` as they arrive; tool-call fragments
+    (which arrive split across chunks) are reassembled by index. The returned
+    dict has the same shape as a normal chat-completion response so the caller's
+    parsing is identical for both paths.
+    """
+    stream_payload = {**payload, "stream": True, "stream_options": {"include_usage": True}}
+    content_parts: list[str] = []
+    tool_calls: dict[int, dict[str, Any]] = {}
+    finish_reason: str | None = None
+    usage: dict[str, Any] = {}
+
+    with client.stream("POST", "/chat/completions", json=stream_payload) as resp:
+        resp.raise_for_status()
+        for line in resp.iter_lines():
+            if not line or not line.startswith("data:"):
+                continue
+            data_str = line[len("data:") :].strip()
+            if data_str == "[DONE]":
+                break
+            try:
+                chunk = json.loads(data_str)
+            except Exception:
+                continue
+            if chunk.get("usage"):
+                usage = chunk["usage"]
+            for choice in chunk.get("choices") or []:
+                delta = choice.get("delta") or {}
+                text = delta.get("content")
+                if text:
+                    content_parts.append(text)
+                    on_token(text)
+                for tc in delta.get("tool_calls") or []:
+                    slot = tool_calls.setdefault(
+                        tc.get("index", 0), {"id": "", "function": {"name": "", "arguments": ""}}
+                    )
+                    if tc.get("id"):
+                        slot["id"] = tc["id"]
+                    fn = tc.get("function") or {}
+                    if fn.get("name"):
+                        slot["function"]["name"] = fn["name"]
+                    if fn.get("arguments"):
+                        slot["function"]["arguments"] += fn["arguments"]
+                if choice.get("finish_reason"):
+                    finish_reason = choice["finish_reason"]
+
+    message: dict[str, Any] = {"content": "".join(content_parts) or None}
+    if tool_calls:
+        message["tool_calls"] = [tool_calls[i] for i in sorted(tool_calls)]
+    return {"choices": [{"message": message, "finish_reason": finish_reason}], "usage": usage}
+
+
 def call_openai_compat(
     client: Any,
     model: str,
@@ -74,8 +130,9 @@ def call_openai_compat(
 ) -> Response:
     """Make one OpenAI-compatible chat completion, normalised to :class:`Response`.
 
-    ``on_token`` is accepted for interface parity; SSE streaming is implemented
-    in a later task.
+    When ``on_token`` is set and the client supports streaming (``client.stream``),
+    the reply is consumed as Server-Sent Events and text deltas are forwarded to
+    the callback; otherwise a single non-streaming request is made.
     """
     openai_tools = [
         {
@@ -97,7 +154,12 @@ def call_openai_compat(
     if openai_tools:
         payload["tools"] = openai_tools
 
-    if hasattr(client, "post"):
+    if on_token is not None and hasattr(client, "stream"):
+
+        def _do_request() -> dict[str, Any]:
+            return _stream_chat(client, payload, on_token)
+
+    elif hasattr(client, "post"):
 
         def _do_request() -> dict[str, Any]:
             resp = client.post("/chat/completions", json=payload)

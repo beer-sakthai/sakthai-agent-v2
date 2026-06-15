@@ -784,3 +784,82 @@ def test_anthropic_no_stream_when_no_on_token(store: MemoryStore) -> None:
     client = FakeClient([_Resp("end_turn", [_Block(type="text", text="plain")])])
     result = run_agent("x", client=client, store=store, provider="anthropic")
     assert result.text == "plain"
+
+
+# -- 7.3 OpenAI-compatible streaming ------------------------------------
+
+
+class _FakeSSEResponse:
+    def __init__(self, lines: list[str]) -> None:
+        self._lines = lines
+
+    def __enter__(self) -> _FakeSSEResponse:
+        return self
+
+    def __exit__(self, *_a: object) -> bool:
+        return False
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def iter_lines(self):  # type: ignore[no-untyped-def]
+        return iter(self._lines)
+
+
+class _FakeStreamHTTPX:
+    """Fake httpx client whose .stream() replays one SSE line-set per call."""
+
+    def __init__(self, line_sets: list[list[str]]) -> None:
+        self._line_sets = line_sets
+        self.stream_calls = 0
+
+    def stream(self, method: str, url: str, json: Any = None) -> _FakeSSEResponse:
+        lines = self._line_sets[self.stream_calls]
+        self.stream_calls += 1
+        return _FakeSSEResponse(lines)
+
+
+def test_openai_streaming_emits_text_deltas(store: MemoryStore) -> None:
+    lines = [
+        'data: {"choices":[{"delta":{"content":"Hello "}}]}',
+        'data: {"choices":[{"delta":{"content":"world"}}]}',
+        'data: {"choices":[{"delta":{},"finish_reason":"stop"}],'
+        '"usage":{"prompt_tokens":3,"completion_tokens":2}}',
+        "data: [DONE]",
+    ]
+    client = _FakeStreamHTTPX([lines])
+    tokens: list[str] = []
+    result = run_agent("x", client=client, store=store, provider="openai", on_token=tokens.append)
+    assert tokens == ["Hello ", "world"]
+    assert result.text == "Hello world"
+    assert result.stop_reason == "end_turn"
+    assert result.usage["input_tokens"] == 3
+    assert result.usage["output_tokens"] == 2
+    assert client.stream_calls == 1
+
+
+def test_openai_streaming_reassembles_tool_calls(store: MemoryStore) -> None:
+    tool_lines = [
+        'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c1",'
+        '"function":{"name":"learn","arguments":"{\\"val"}}]}}]}',
+        'data: {"choices":[{"delta":{"tool_calls":[{"index":0,'
+        '"function":{"arguments":"ue\\": \\"x\\"}"}}]}}]}',
+        'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}',
+        "data: [DONE]",
+    ]
+    end_lines = [
+        'data: {"choices":[{"delta":{"content":"done"},"finish_reason":"stop"}]}',
+        "data: [DONE]",
+    ]
+    client = _FakeStreamHTTPX([tool_lines, end_lines])
+    result = run_agent(
+        "x",
+        client=client,
+        store=store,
+        provider="openai",
+        on_token=lambda _t: None,
+        max_iterations=2,
+    )
+    # The reassembled tool call (split across chunks) should have dispatched `learn`.
+    assert any(c["name"] == "learn" for c in result.tool_calls)
+    assert result.text == "done"

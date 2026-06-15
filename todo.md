@@ -100,9 +100,10 @@ Goal: progressive token display instead of waiting for full response.
       client.messages.stream() when on_token is set, forwarding text deltas and
       returning the assembled final message (same shape as create()); non-stream
       path unchanged. 2 tests.
-- [ ] 7.3 — OpenAI-compat streaming: set `"stream": True`, parse SSE chunks,
-      yield deltas, accumulate tool_calls.
-      (sakthai/agent/providers/openai.py, tests/test_streaming.py)
+- [x] 7.3 — OpenAI-compat streaming — 2026-06-15: when on_token is set and the
+      client supports `.stream`, call_openai_compat consumes SSE (stream + usage),
+      forwards text deltas, and reassembles tool-call fragments by index into the
+      same response shape as the non-stream path. 2 tests. **Phase 7 complete.**
 
 ## Phase 8 — Dashboard & observability ← CON #9
 Goal: session history + token charts in the Streamlit dashboard.
