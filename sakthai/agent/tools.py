@@ -288,8 +288,19 @@ def _run_agent_loop(args: dict[str, Any], store: MemoryStore) -> str:
     tools_for_loop = tuple(t for t in BUILTIN_TOOLS if t.name != "run_agent_loop")
     kwargs["tools"] = tools_for_loop
 
+    prune_history = args.get("prune_history", True)
+    if not isinstance(prune_history, bool):
+        prune_history = True
+
     result = run_agent(**kwargs)
-    return result.text
+    if prune_history:
+        return result.text
+
+    lines = [result.text, "", "Tool calls made in this loop:"]
+    for tc in result.tool_calls:
+        status = "error" if tc.get("is_error") else "success"
+        lines.append(f"- {tc['name']}({tc['input']}) [{status}]")
+    return "\n".join(lines)
 
 
 # -- registry ------------------------------------------------------------
@@ -449,6 +460,11 @@ BUILTIN_TOOLS: tuple[Tool, ...] = (
                 "max_iterations": {
                     "type": "integer",
                     "description": "Optional maximum tool-use cap (default: 12).",
+                },
+                "prune_history": {
+                    "type": "boolean",
+                    "description": "If true, returns only the final text answer of the loop. If false, appends a tool call summary.",
+                    "default": True,
                 },
             },
             "required": ["task"],

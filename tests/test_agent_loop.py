@@ -385,3 +385,47 @@ def test_run_agent_loop_recursion_guard(
             {"task": "do nested task", "provider": "anthropic"},
             store,
         )
+
+
+def test_run_agent_loop_pruning(store: MemoryStore, monkeypatch: pytest.MonkeyPatch) -> None:
+    import sakthai.agent.loop as loop_mod
+    from sakthai.agent.tools import tool_by_name
+
+    run_agent_loop_tool = tool_by_name("run_agent_loop")
+    assert run_agent_loop_tool is not None
+
+    inner_client = FakeClient(
+        [
+            _Resp(
+                "tool_use",
+                [_Block(type="tool_use", id="t1", name="learn", input={"value": "fact-xyz"})],
+            ),
+            _Resp("end_turn", [_Block(type="text", text="inner success")]),
+        ]
+    )
+    monkeypatch.setattr(loop_mod, "_build_client", lambda provider, client: inner_client)
+
+    res_pruned = run_agent_loop_tool.handler(
+        {"task": "do pruning task", "provider": "anthropic", "prune_history": True},
+        store,
+    )
+    assert res_pruned == "inner success"
+
+    inner_client2 = FakeClient(
+        [
+            _Resp(
+                "tool_use",
+                [_Block(type="tool_use", id="t2", name="learn", input={"value": "fact-abc"})],
+            ),
+            _Resp("end_turn", [_Block(type="text", text="inner success 2")]),
+        ]
+    )
+    monkeypatch.setattr(loop_mod, "_build_client", lambda provider, client: inner_client2)
+
+    res_unpruned = run_agent_loop_tool.handler(
+        {"task": "do unpruned task", "provider": "anthropic", "prune_history": False},
+        store,
+    )
+    assert "inner success 2" in res_unpruned
+    assert "Tool calls made in this loop:" in res_unpruned
+    assert "- learn({'value': 'fact-abc'}) [success]" in res_unpruned
