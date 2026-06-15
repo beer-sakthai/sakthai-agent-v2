@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import contextlib
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from typing import Any
 
 import click
@@ -15,6 +16,26 @@ from ..agent.loop import (
     AgentError,
     run_agent,
 )
+from ..agent.tools import BUILTIN_TOOLS, Tool
+
+
+@contextlib.contextmanager
+def _tool_context(*, no_mcp: bool, verbose: bool) -> Iterator[tuple[Tool, ...]]:
+    """Yield the tools for a run: built-ins plus any configured MCP servers.
+
+    With no servers configured (or ``--no-mcp``) this is just the built-ins and
+    spawns nothing. External servers come from ``~/.sakthai/mcp.json`` and
+    installed extensions; one that fails to start is skipped, not fatal.
+    """
+    if no_mcp:
+        yield BUILTIN_TOOLS
+        return
+    from ..mcp.manager import connect_servers
+
+    with connect_servers() as mcp_tools:
+        if mcp_tools and verbose:
+            click.echo(f"[mcp] loaded {len(mcp_tools)} external tool(s)", err=True)
+        yield (*BUILTIN_TOOLS, *mcp_tools)
 
 
 def _event_emitter(verbose: bool) -> Callable[[str, dict[str, Any]], None]:
@@ -56,6 +77,11 @@ def _event_emitter(verbose: bool) -> Callable[[str, dict[str, Any]], None]:
     help="LLM provider backend.",
 )
 @click.option("-v", "--verbose", is_flag=True, help="Stream tool calls as they happen.")
+@click.option(
+    "--no-mcp",
+    is_flag=True,
+    help="Don't load external MCP servers (from ~/.sakthai/mcp.json and extensions).",
+)
 def run(
     task: str,
     model: str,
@@ -64,18 +90,26 @@ def run(
     max_seconds: float | None,
     provider: str | None,
     verbose: bool,
+    no_mcp: bool,
 ) -> None:
-    """Run TASK through the standalone SakThai agent."""
+    """Run TASK through the standalone SakThai agent.
+
+    External MCP servers configured in ~/.sakthai/mcp.json (or installed
+    extensions) are loaded automatically and their tools become available to the
+    agent; pass --no-mcp to skip them.
+    """
     try:
-        result = run_agent(
-            task,
-            model=model,
-            max_tokens=max_tokens,
-            max_iterations=max_iterations,
-            max_seconds=max_seconds,
-            on_event=_event_emitter(verbose),
-            provider=provider,
-        )
+        with _tool_context(no_mcp=no_mcp, verbose=verbose) as tools:
+            result = run_agent(
+                task,
+                model=model,
+                max_tokens=max_tokens,
+                max_iterations=max_iterations,
+                max_seconds=max_seconds,
+                on_event=_event_emitter(verbose),
+                provider=provider,
+                tools=tools,
+            )
     except AgentError as exc:
         raise click.ClickException(str(exc)) from exc
     except KeyboardInterrupt:

@@ -10,6 +10,7 @@ network or spawns a subprocess.
 from __future__ import annotations
 
 import json
+import sys
 import types
 from collections.abc import Iterator
 from pathlib import Path
@@ -383,6 +384,58 @@ def test_mcp_invokes_serve(runner: CliRunner, monkeypatch: pytest.MonkeyPatch) -
     result = runner.invoke(main, ["mcp"])
     assert result.exit_code == 0
     assert called["n"] == 1
+
+
+def _capture_tools(monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
+    captured: dict[str, object] = {}
+
+    def fake_run_agent(task: str, **kwargs: object) -> object:
+        captured["tools"] = kwargs.get("tools")
+        return types.SimpleNamespace(text="ok")
+
+    monkeypatch.setattr(agent_mod, "run_agent", fake_run_agent)
+    return captured
+
+
+def test_run_autoloads_configured_mcp_tools(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, sakthai_home: Path, tmp_path: Path
+) -> None:
+    server_home = tmp_path / "srv"
+    (sakthai_home / "mcp.json").write_text(
+        json.dumps(
+            {
+                "mcpServers": {
+                    "sk": {
+                        "command": sys.executable,
+                        "args": ["-m", "sakthai.mcp"],
+                        "env": {"SAKTHAI_HOME": str(server_home)},
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    captured = _capture_tools(monkeypatch)
+    result = runner.invoke(main, ["run", "hi"])
+    assert result.exit_code == 0
+    names = {t.name for t in captured["tools"]}  # type: ignore[union-attr]
+    assert any(n.startswith("sk__") for n in names)  # external tools merged in
+    assert "learn" in names  # built-ins still present
+
+
+def test_run_no_mcp_skips_external_servers(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, sakthai_home: Path
+) -> None:
+    # A configured (here, deliberately broken) server must be ignored with --no-mcp.
+    (sakthai_home / "mcp.json").write_text(
+        json.dumps({"mcpServers": {"sk": {"command": "sakthai-no-such-binary"}}}), encoding="utf-8"
+    )
+    captured = _capture_tools(monkeypatch)
+    result = runner.invoke(main, ["run", "hi", "--no-mcp"])
+    assert result.exit_code == 0
+    names = {t.name for t in captured["tools"]}  # type: ignore[union-attr]
+    assert not any(n.startswith("sk__") for n in names)
+    assert "learn" in names
 
 
 # -- dashboard -----------------------------------------------------------

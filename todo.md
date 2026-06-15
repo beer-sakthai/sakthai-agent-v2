@@ -38,8 +38,11 @@ Living task list. Work top-to-bottom; check off with a dated one-line note when 
 - [ ] Skill injection: render selected SKILL.md bodies into the system prompt
       (loop._build_system + skills.render_skills_prompt_block); collect from
       ~/.sakthai/extensions too
-- [ ] CLI + config: `sakthai run --with-extensions --with-skills`; auto-load all
-      configured servers from ~/.sakthai/mcp.json so it works with zero flags
+- [x] CLI + config: auto-load all configured servers from ~/.sakthai/mcp.json so
+      it works with zero flags; `--no-mcp` to opt out — 2026-06-15: `sakthai run`
+      wraps run_agent in connect_servers() (no-op when none configured), merges
+      external tools into the loop; 2 CLI tests (autoload + --no-mcp). 198 passed.
+      (--with-skills lands with the skill-injection task below.)
 
 ## Phase 2 — Multi-runtime / local model (self-driving, no API key)
 - [ ] OpenAI-compatible / Ollama provider (the ~7 touches: config env, auth
@@ -66,3 +69,4 @@ Living task list. Work top-to-bottom; check off with a dated one-line note when 
 - 2026-06-15 — Phase 1.2 done: StdioMCPClient (spawn/handshake/call external MCP servers) (184 passed).
 - 2026-06-15 — Phase 1.3 done: MCP server manifest parsing + config discovery (192 passed).
 - 2026-06-15 — Phase 1.4 done: connect_servers wires external MCP tools into an agent run (196 passed).
+- 2026-06-15 — Phase 1.6 done: `sakthai run` auto-loads MCP servers from config; --no-mcp opt-out (198 passed).
