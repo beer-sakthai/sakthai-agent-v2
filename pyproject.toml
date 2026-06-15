@@ -40,6 +40,9 @@ sakthai = "sakthai.cli:main"
 
 [tool.pytest.ini_options]
 addopts = "-q"
+markers = [
+    "integration: tests that may hit real external endpoints (Ollama/Anthropic); excluded from CI via -m 'not integration', and self-skip when the endpoint/credential is absent",
+]
 
 [tool.coverage.run]
 source = ["sakthai"]

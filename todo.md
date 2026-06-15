@@ -84,10 +84,10 @@ Goal: loop.py drops from ~700 to ~300 lines by extracting providers.
       __init__ owns detect_provider/build_client). loop.py is now orchestration
       (823→369 lines) with back-compat shims so the import/patch surface is
       unchanged. 239 tests green.
-- [ ] 6.2 — Integration test markers: add `@pytest.mark.integration` for tests
-      that can optionally hit real Ollama/Anthropic endpoints. CI runs with
-      `-m "not integration"`.
-      (pyproject.toml, .github/workflows/ci.yml, tests/test_integration.py)
+- [x] 6.2 — Integration test markers — 2026-06-15: registered the `integration`
+      marker in pyproject; CI now runs `-m "not integration"`; tests/test_integration.py
+      holds live Anthropic/Ollama smokes that self-skip without creds/endpoint, so
+      the default run stays hermetic. **Phase 6 complete.**
 
 ## Phase 7 — Streaming output ← CON #2, #3
 Goal: progressive token display instead of waiting for full response.
