@@ -3,8 +3,9 @@
 Living task list. Work top-to-bottom; check off with a dated one-line note when done.
 
 ## Phase 0 — Quality cleanup (from review cons)
-- [ ] Make brittle CLI test assertions robust (assert on stable tokens / exit
-      codes, not fragile full-string output)
+- [x] Make brittle CLI test assertions robust (assert on stable tokens / exit
+      codes, not fragile full-string output) — 2026-06-15: shifted mutating-command
+      tests to store/file side-effect checks; dropped count/spacing-coupled output
 - [ ] Add a smoke test for dashboard/app.py (import + render the data path with
       a fake store) or document why it stays excluded
 - [ ] Depth pass: targeted correctness tests for memory/store.py migrations and
@@ -44,3 +45,4 @@ Living task list. Work top-to-bottom; check off with a dated one-line note when 
 
 ## Log
 - 2026-06-15 — todo.md created and committed; roadmap approved.
+- 2026-06-15 — Phase 0.1 done: robust CLI test assertions (159 tests green).

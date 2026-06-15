@@ -67,7 +67,7 @@ def test_help_lists_commands(runner: CliRunner) -> None:
 def test_learn_persists_fact(runner: CliRunner) -> None:
     result = runner.invoke(main, ["learn", "the sky is blue"])
     assert result.exit_code == 0
-    assert "learned (id=" in result.output
+    # Behaviour, not phrasing: the fact is actually in the store.
     with MemoryStore() as store:
         assert any("sky is blue" in f.value for f in store.list_facts())
 
@@ -86,14 +86,17 @@ def test_learn_from_file(runner: CliRunner, tmp_path: Path) -> None:
     )
     result = runner.invoke(main, ["learn", "--file", str(facts_file)])
     assert result.exit_code == 0
-    assert "learned 4 facts" in result.output
+    # The 4 bullet/numbered/plain lines are learned; the heading is skipped.
+    with MemoryStore() as store:
+        values = {f.value for f in store.list_facts()}
+    assert {"apple", "banana", "cherry", "plain line"} <= values
+    assert "heading (ignored)" not in " ".join(values)
 
 
 def test_recall_finds_match(runner: CliRunner) -> None:
     runner.invoke(main, ["learn", "espresso is strong"])
     result = runner.invoke(main, ["recall", "espresso"])
     assert result.exit_code == 0
-    assert "# Facts" in result.output
     assert "espresso is strong" in result.output
 
 
@@ -128,7 +131,7 @@ def test_memory_show_empty(runner: CliRunner) -> None:
 def test_memory_show_lists_facts(runner: CliRunner) -> None:
     runner.invoke(main, ["learn", "fact one"])
     result = runner.invoke(main, ["memory", "show"])
-    assert "# Facts" in result.output
+    assert result.exit_code == 0
     assert "fact one" in result.output
 
 
@@ -145,8 +148,12 @@ def test_memory_forget(runner: CliRunner) -> None:
     with MemoryStore() as store:
         fact_id = store.list_facts()[0].id
     ok = runner.invoke(main, ["memory", "forget", str(fact_id)])
-    assert "forgotten" in ok.output
+    assert ok.exit_code == 0
+    # The fact is actually gone, not just reported gone.
+    with MemoryStore() as store:
+        assert all(f.id != fact_id for f in store.list_facts())
     missing = runner.invoke(main, ["memory", "forget", "99999"])
+    assert missing.exit_code == 0
     assert "no fact with id 99999" in missing.output
 
 
@@ -226,7 +233,9 @@ def test_cycle_next_advances(runner: CliRunner) -> None:
 def test_cycle_set_valid(runner: CliRunner) -> None:
     result = runner.invoke(main, ["cycle", "set", "trust"])
     assert result.exit_code == 0
-    assert "TRUST" in result.output
+    # State persists across invocations: a fresh status reports the new stage.
+    status = runner.invoke(main, ["cycle", "status"])
+    assert "TRUST" in status.output
 
 
 def test_cycle_set_invalid(runner: CliRunner) -> None:
@@ -268,7 +277,9 @@ def test_skills_show(runner: CliRunner, skill_roots: tuple[Path, Path]) -> None:
     _write_skill(skill_roots[0], "alpha")
     result = runner.invoke(main, ["skills", "show", "alpha"])
     assert result.exit_code == 0
-    assert "name:      alpha" in result.output
+    # Don't couple to column spacing — just that the field and value are present.
+    assert "name:" in result.output
+    assert "alpha" in result.output
 
 
 def test_skills_show_missing(runner: CliRunner, skill_roots: tuple[Path, Path]) -> None:
