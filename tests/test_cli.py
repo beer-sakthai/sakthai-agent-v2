@@ -21,6 +21,7 @@ from click.testing import CliRunner
 import sakthai.cli.agent as agent_mod
 import sakthai.cli.skills as skills_mod
 from sakthai.cli import main
+from sakthai.config import memory_db_path
 from sakthai.memory.store import MemoryStore
 
 
@@ -163,6 +164,15 @@ def test_memory_backup(runner: CliRunner) -> None:
     result = runner.invoke(main, ["memory", "backup"])
     assert result.exit_code == 0
     assert "backup created:" in result.output
+
+
+def test_memory_backup_no_db(runner: CliRunner, sakthai_home: Path) -> None:
+    db = memory_db_path()
+    if db.exists():
+        db.unlink()
+    result = runner.invoke(main, ["memory", "backup"])
+    assert result.exit_code != 0
+    assert "No memory database exists yet" in result.output
 
 
 def test_memory_healthcheck(runner: CliRunner) -> None:

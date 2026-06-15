@@ -201,7 +201,11 @@ def memory_forget_obs(obs_id: int) -> None:
 @memory.command("backup")
 def memory_backup() -> None:
     """Write a timestamped backup of the memory database."""
-    click.echo(f"backup created: {backup_memory()}")
+    try:
+        dest = backup_memory()
+    except FileNotFoundError as exc:
+        raise click.ClickException(str(exc)) from exc
+    click.echo(f"backup created: {dest}")
 
 
 @memory.command("healthcheck")

@@ -69,9 +69,7 @@ bandit → pytest) → commit → push → **wait for CI green** → next.
 - [x] 5.2 — Token usage tracking — 2026-06-15
 - [x] 5.3 — Session management CLI — 2026-06-15
 - [x] 5.4 — Robust provider construction — 2026-06-15
-- [ ] 5.5 — Safe memory backup: backup_memory() raises clear error when no DB
-      exists; CLI surfaces as ClickException. Test the no-DB path.
-      (sakthai/memory/backup.py, sakthai/cli/memory.py, tests/test_memory_aux.py)
+- [x] 5.5 — Safe memory backup — 2026-06-15
 - [ ] 5.6 — Preflight `sakthai run --dry-run`: resolve provider + creds + model
       + tool count with no API call; print and exit 0. No cost.
       (sakthai/agent/loop.py, sakthai/cli/agent.py, tests/test_cli.py)

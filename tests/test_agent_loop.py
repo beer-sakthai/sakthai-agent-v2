@@ -592,6 +592,36 @@ def test_anthropic_call_retries_then_succeeds(
     assert client.messages.calls == 2
 
 
+# ---------- usage tracking (Phase 5.2) ----------
+
+
+class _RespWithUsage:
+    def __init__(self, usage: Any) -> None:
+        self.stop_reason = "end_turn"
+        self.content = [_Block(type="text", text="hi")]
+        self.usage = usage
+
+
+def test_usage_tracker_accumulates() -> None:
+    from sakthai.agent.usage import UsageTracker
+
+    tracker = UsageTracker()
+    tracker.record(input_tokens=10, output_tokens=20)
+    tracker.record(input_tokens=5, output_tokens=10)
+    assert tracker.to_dict() == {
+        "input_tokens": 15,
+        "output_tokens": 30,
+        "total_tokens": 45,
+    }
+
+
+def test_extract_usage_anthropic() -> None:
+    from sakthai.agent.usage import extract_usage
+
+    resp = _RespWithUsage(usage=type("U", (), {"input_tokens": 7, "output_tokens": 13})())
+    assert extract_usage(resp) == {"input_tokens": 7, "output_tokens": 13}
+
+
 # ---------- provider construction / credentials validation (Phase 5.4) ----------
 
 

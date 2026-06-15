@@ -12,6 +12,8 @@ from ..config import memory_db_path
 def backup_memory() -> Path:
     """Copy the memory DB to ``memory_<timestamp>.db.bak`` beside it."""
     db = memory_db_path()
+    if not db.is_file():
+        raise FileNotFoundError("No memory database exists yet.")
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     destination = db.parent / f"memory_{stamp}.db.bak"
     shutil.copy2(db, destination)

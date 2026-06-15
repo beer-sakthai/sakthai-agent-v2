@@ -77,6 +77,14 @@ def test_backup_copies_database(sakthai_home: Path) -> None:
     assert dest.read_bytes() == db.read_bytes()
 
 
+def test_backup_no_database_raises(sakthai_home: Path) -> None:
+    db = memory_db_path()
+    if db.exists():
+        db.unlink()
+    with pytest.raises(FileNotFoundError, match="No memory database exists yet"):
+        backup_memory()
+
+
 # -- learn (capture) -----------------------------------------------------
 
 
