@@ -55,6 +55,20 @@ mypy sakthai
 bandit -c pyproject.toml -r sakthai
 ```
 
+## Repository layout
+
+```
+sakthai/     the package (memory, agent, mcp, cycle, skills, dashboard, cli)
+tests/       unit tests
+skills/      top-level skills (sakthai-personal, sakthai-cycle-*)
+library/     curated library of SakThai's own skills, grouped by category
+docs/        architecture and capabilities docs
+scripts/     bootstrap.sh, setup-extensions.sh
+web/         zero-build static dashboard (reads data.json)
+data/        memory snapshot format + a sample export
+scratch/     throwaway prototypes (not packaged, not in CI)
+```
+
 ## The cycle
 
 `SOUL.md` describes the agent's charge model, and `Dream.md` → `Growth.md`
