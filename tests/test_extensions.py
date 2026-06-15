@@ -1,13 +1,12 @@
 """Tests for sakthai.extensions.install.
 
-Git is never actually invoked: ``install`` is exercised by monkeypatching
+Git is never actually invoked: ``install_extension`` is exercised by monkeypatching
 ``subprocess.run`` so the clone is simulated on the local filesystem. The
 ``sakthai_home`` fixture redirects the extensions dir and registry into tmp.
 """
 
 from __future__ import annotations
 
-import importlib
 import json
 import subprocess
 import types
@@ -16,12 +15,7 @@ from pathlib import Path
 
 import pytest
 
-# Import the submodule object explicitly. ``sakthai.extensions.__init__``
-# re-exports ``install`` (the function), which shadows the submodule under both
-# ``from ... import install`` and ``import ....install as ext``; importlib
-# returns the real module from sys.modules instead.
-ext = importlib.import_module("sakthai.extensions.install")
-
+import sakthai.extensions.install as ext
 
 # -- helpers -------------------------------------------------------------
 
@@ -111,12 +105,12 @@ def test_discover_mcp_servers_missing_manifest(tmp_path: Path) -> None:
 
 def test_install_rejects_invalid_name(sakthai_home: Path) -> None:
     with pytest.raises(ext.ExtensionError, match="invalid extension name"):
-        ext.install("https://example.com/foo/@bad")
+        ext.install_extension("https://example.com/foo/@bad")
 
 
 def test_install_happy_path(sakthai_home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(ext.subprocess, "run", _fake_clone())
-    result = ext.install("https://github.com/foo/bar")
+    result = ext.install_extension("https://github.com/foo/bar")
     assert result.already_installed is False
     assert result.extension.name == "bar"
     assert result.skills_found == ["myskill"]
@@ -146,7 +140,7 @@ def test_install_already_installed_skips_git(
         }
     )
     monkeypatch.setattr(ext.subprocess, "run", _boom)
-    result = ext.install("https://github.com/foo/bar")
+    result = ext.install_extension("https://github.com/foo/bar")
     assert result.already_installed is True
     assert result.skills_found == ["s1"]
 
@@ -157,7 +151,7 @@ def test_install_git_missing(sakthai_home: Path, monkeypatch: pytest.MonkeyPatch
 
     monkeypatch.setattr(ext.subprocess, "run", _raise)
     with pytest.raises(ext.ExtensionError, match="git is not available"):
-        ext.install("https://github.com/foo/bar")
+        ext.install_extension("https://github.com/foo/bar")
 
 
 def test_install_clone_failure(sakthai_home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -166,7 +160,7 @@ def test_install_clone_failure(sakthai_home: Path, monkeypatch: pytest.MonkeyPat
 
     monkeypatch.setattr(ext.subprocess, "run", _raise)
     with pytest.raises(ext.ExtensionError, match="git clone failed"):
-        ext.install("https://github.com/foo/bar")
+        ext.install_extension("https://github.com/foo/bar")
 
 
 # -- list / remove -------------------------------------------------------
@@ -182,7 +176,7 @@ def test_remove_unknown_returns_false(sakthai_home: Path) -> None:
 
 def test_remove_installed(sakthai_home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(ext.subprocess, "run", _fake_clone())
-    ext.install("https://github.com/foo/bar")
+    ext.install_extension("https://github.com/foo/bar")
     clone_path = ext.extensions_dir() / "bar"
     assert clone_path.is_dir()
     assert ext.remove("bar") is True

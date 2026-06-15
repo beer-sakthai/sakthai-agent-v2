@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import click
 
-from ..extensions import ExtensionError, list_extensions
-from ..extensions import install as install_extension
+from ..extensions import ExtensionError, install_extension, list_extensions
 from ..extensions import remove as remove_extension
 
 

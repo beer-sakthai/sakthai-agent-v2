@@ -6,12 +6,18 @@ import click
 
 from .. import __version__
 from .agent import mcp, run
-from .cycle import cycle
-from .dashboard import dashboard
-from .extensions import extensions
-from .memory import learn, memory, recall
-from .skills import skills
+from .cycle import cycle as cycle_cmd
+from .dashboard import dashboard as dashboard_cmd
+from .extensions import extensions as extensions_cmd
+from .memory import learn, recall
+from .memory import memory as memory_cmd
+from .skills import skills as skills_cmd
 from .system import doctor, setup, status, tools
+
+# Group commands are imported under ``*_cmd`` aliases on purpose: binding the
+# group object under its own name here would shadow the same-named submodule as
+# a package attribute (e.g. ``sakthai.cli.skills`` would resolve to the group,
+# not the module), which breaks ``import sakthai.cli.skills`` for tests/tools.
 
 
 @click.group()
@@ -23,7 +29,7 @@ def main() -> None:
 # Memory
 main.add_command(learn)
 main.add_command(recall)
-main.add_command(memory)
+main.add_command(memory_cmd)
 
 # System
 main.add_command(doctor)
@@ -36,9 +42,9 @@ main.add_command(run)
 main.add_command(mcp)
 
 # Skills, cycle, extensions, dashboard
-main.add_command(skills)
-main.add_command(cycle)
-main.add_command(extensions)
-main.add_command(dashboard)
+main.add_command(skills_cmd)
+main.add_command(cycle_cmd)
+main.add_command(extensions_cmd)
+main.add_command(dashboard_cmd)
 
 __all__ = ["main"]

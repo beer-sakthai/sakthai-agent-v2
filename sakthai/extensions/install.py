@@ -93,7 +93,7 @@ def _info_from_registry(name: str, data: dict[str, Any]) -> ExtensionInfo:
     )
 
 
-def install(url: str) -> InstallResult:
+def install_extension(url: str) -> InstallResult:
     """Clone ``url`` into the extensions dir and register its skills/MCP servers."""
     name = _name_from_url(url)
     if not EXTENSION_NAME_RE.match(name):

@@ -9,7 +9,6 @@ network or spawns a subprocess.
 
 from __future__ import annotations
 
-import importlib
 import json
 import types
 from collections.abc import Iterator
@@ -19,13 +18,9 @@ import pytest
 from click.testing import CliRunner
 
 import sakthai.cli.agent as agent_mod
+import sakthai.cli.skills as skills_mod
 from sakthai.cli import main
 from sakthai.memory.store import MemoryStore
-
-# ``sakthai.cli.__init__`` re-exports the ``skills`` command group, shadowing the
-# submodule of the same name; importlib returns the real module so we can
-# monkeypatch its module-level SKILLS_DIR / LIBRARY_DIR.
-skills_mod = importlib.import_module("sakthai.cli.skills")
 
 
 @pytest.fixture(autouse=True)
@@ -324,7 +319,7 @@ def test_extensions_list_empty(runner: CliRunner) -> None:
 
 
 def test_extensions_install_and_remove(runner: CliRunner, monkeypatch: pytest.MonkeyPatch) -> None:
-    ext_mod = importlib.import_module("sakthai.extensions.install")
+    import sakthai.extensions.install as ext_mod
 
     monkeypatch.setattr(ext_mod.subprocess, "run", _fake_clone)
     inst = runner.invoke(main, ["extensions", "install", "https://github.com/foo/bar"])

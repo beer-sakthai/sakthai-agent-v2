@@ -7,7 +7,7 @@ from .install import (
     ExtensionInfo,
     InstallResult,
     extensions_dir,
-    install,
+    install_extension,
     list_extensions,
     remove,
 )
@@ -17,7 +17,7 @@ __all__ = [
     "ExtensionInfo",
     "InstallResult",
     "extensions_dir",
-    "install",
+    "install_extension",
     "list_extensions",
     "remove",
 ]
