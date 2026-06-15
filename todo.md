@@ -66,6 +66,33 @@ Living task list. Work top-to-bottom; check off with a dated one-line note when 
 - [x] Indirect Recursion Safety: environment-based loop guard to prevent nested runs — 2026-06-15: added SAKTHAI_AGENT_ACTIVE environment flag and ValueError loop guard.
 - [x] Context Token Pruning: prune intermediate loop history in run_agent_loop outputs — 2026-06-15: added prune_history parameter to the tool schema/handler.
 
+## Phase 5 — Make it run (robustness + preflight)
+Goal: the agent runs dependably — clean errors instead of raw tracebacks, a
+zero-cost preflight, a hermetic proof the real CLI path runs, and resources that
+survive a real install. One task at a time: local gate (ruff → format → mypy →
+bandit → pytest) → commit → push to main → **wait for CI green** → next.
+
+- [ ] Task 1 — Robust provider/store construction: wrap the google/openai branches
+      of `_build_client` and the `MemoryStore()` init in `run_agent` so missing
+      creds / FS errors raise a clean `AgentError`, not a raw traceback. Tests for
+      forced-provider-no-creds and store-init failure. (sakthai/agent/loop.py,
+      tests/test_agent_loop.py)
+- [ ] Task 2 — Safe memory backup: `backup_memory()` raises a clear error when no
+      DB exists yet; `sakthai memory backup` surfaces it as a ClickException, not a
+      traceback. Test the no-DB path. (sakthai/memory/backup.py, sakthai/cli/memory.py,
+      tests/test_memory_aux.py)
+- [ ] Task 3 — Preflight `sakthai run --dry-run`: a `preflight()` helper resolves
+      provider + credential source + model + tool count with **no API call**;
+      `--dry-run` prints it and exits 0 when runnable. (sakthai/agent/loop.py,
+      sakthai/cli/agent.py, tests/test_agent_loop.py, tests/test_cli.py)
+- [ ] Task 4 — Hermetic end-to-end CLI smoke: drive the real `sakthai run` path via
+      CliRunner with an injected fake client + temp SAKTHAI_HOME; assert a session
+      log is written. No network, no cost. (tests/)
+- [ ] Task 5 — Package bundled resources: ship skills/, library/, data/ in sdist +
+      wheel (MANIFEST.in + setuptools) and make config.py resolve them for installed
+      and editable layouts. Test resources resolve. (pyproject.toml, MANIFEST.in,
+      sakthai/config.py, tests/)
+
 ---
 
 ## Log
@@ -82,3 +109,4 @@ Living task list. Work top-to-bottom; check off with a dated one-line note when 
 - 2026-06-15 — Phase 2 done: added OpenAI/Ollama provider, integration guides, run_agent_loop tool (207 passed). **Phase 2 complete.**
 - 2026-06-15 — Phase 3 done: hermetic tests for new provider and tools, strict mypy validation, updated architecture and configuration logs. **Phase 3 complete.**
 - 2026-06-15 — Phase 4 done: SQLite WAL mode/locks, indirect recursion loop guard, run_agent_loop context token pruning (209 passed). **Phase 4 complete.**
+- 2026-06-15 — Phase 5 roadmap written (make-it-run: robustness + preflight). Also folded in CLAUDE.md doc-accuracy fixes (registry/external-MCP/provider list; dropped stale scratch/ refs).

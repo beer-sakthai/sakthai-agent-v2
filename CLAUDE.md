@@ -46,8 +46,11 @@ root with `SAKTHAI_HOME`):
    Agent: `run "<task>"`. Server: `mcp`. Plus `cycle`, `skills`, `extensions`,
    `dashboard`, `doctor`, `setup`, `tools`.
 2. **Agent loop** — `sakthai run` drives a provider-agnostic tool-using loop
-   (Claude or Gemini).
+   (Claude, Gemini, or any OpenAI-compatible/Ollama endpoint).
 3. **MCP server** — `sakthai mcp` serves the same tools over JSON-RPC stdio.
+
+`sakthai run` can also reach *out* to external MCP servers: tools discovered from
+them are merged into the registry (namespaced `<server>__<tool>`) for that run.
 
 ## Architecture (the big picture)
 
@@ -66,15 +69,22 @@ CLI/MCP → agent loop → tool registry → MemoryStore → SQLite. See
   It holds *facts* and *observations* with search, tagging, dedupe,
   consolidation, stats, and snapshot import/export. Schema changes are additive
   migrations in `_migrate_schema()` (ALTER TABLE only, under `BEGIN IMMEDIATE`).
-- **`agent/tools.py`** — the shared tool registry (one schema + handler per
-  tool), used by **both** the agent loop and the MCP server. Add a tool once
-  here and it appears in both surfaces.
+- **`agent/tools.py` + `agent/registry.py`** — `tools.py` defines `BUILTIN_TOOLS`
+  (one schema + handler per tool); `registry.py`'s `ToolRegistry` keys tools by
+  name for both the agent loop and the MCP server, and merges runtime-discovered
+  tools (later tool wins on a name clash, so a plugin can shadow a built-in). Add
+  a tool once in `tools.py` and it appears in both surfaces.
 - **`agent/loop.py`** — `run_agent` injects `store.render_prompt_block()` into
   the system prompt and dispatches tool calls. Client and store are injectable
   for testing. Each call writes a session log to `~/.sakthai/sessions/`.
-- **`mcp/server.py`** — dependency-free JSON-RPC 2.0 stdio server.
+- **`mcp/server.py`** — dependency-free JSON-RPC 2.0 stdio server (inbound).
   `handle_request` is a **pure function**, so the protocol is unit-testable with
   no process.
+- **`mcp/{client,manager,servers}.py`** — the outbound mirror: `servers.py`
+  discovers external server specs (`~/.sakthai/mcp.json` + extensions), `client.py`
+  speaks JSON-RPC to one subprocess and wraps each remote tool as a local `Tool`,
+  and `manager.connect_servers()` is the context manager that starts them all
+  (failing soft), yields their merged tools, and tears them down.
 - **`cli/`** — click commands split by area (`agent`, `cycle`, `dashboard`,
   `extensions`, `memory`, `skills`, `system`).
 - **`cycle/`** — the six-stage Dream → Hope → Care → Joy → Trust → Growth state
@@ -95,8 +105,8 @@ CLI/MCP → agent loop → tool registry → MemoryStore → SQLite. See
 - **Sandbox defaults are deliberate.** `read_file` is restricted to cwd +
   `~/.sakthai` + `SAKTHAI_READ_ALLOW`; `run_command` is **opt-in** via
   `SAKTHAI_SHELL_ALLOW`. Don't widen these without reason.
-- **Not type-checked / not in CI lint:** `library/`, `scripts/`, `scratch/`,
-  `web/` are excluded from ruff; `scratch/` is throwaway prototypes (not packaged).
+- **Not linted / not type-checked:** ruff excludes `library/`, `scripts/`, and
+  `web/`; mypy only covers `sakthai/`. Don't "fix" lint/types in those trees.
 - **mypy is `strict`** over `sakthai/` (the Streamlit `dashboard/app.py` is the
   one loosened module). Keep new code strict-clean.
 
