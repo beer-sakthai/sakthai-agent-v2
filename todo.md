@@ -21,9 +21,11 @@ Living task list. Work top-to-bottom; check off with a dated one-line note when 
       ToolRegistry (get/schemas/with_tools, last-wins merge); routed loop dispatch
       through it, fixing a latent bug where injected tools were advertised but not
       dispatchable. 178 tests.
-- [ ] MCP client (sakthai/mcp/client.py): spawn an external MCP server over
+- [x] MCP client (sakthai/mcp/client.py): spawn an external MCP server over
       stdio, initialize, tools/list, tools/call; reuse the JSON-RPC shapes from
-      mcp/server.py; graceful failure (log + continue)
+      mcp/server.py; graceful failure (log + continue) — 2026-06-15: StdioMCPClient
+      with select-timeout reads, as_tools(prefix=) wrapping, MCPClientError/
+      MCPToolError fail-soft; 6 e2e tests vs the real server (184 passed)
 - [ ] Parse mcpServers manifests ({command,args,env}) from gemini-extension.json
       / .mcp.json (extend extensions/install discovery beyond names)
 - [ ] Wire MCP-client tools into run_agent: load configured servers, convert
@@ -56,3 +58,4 @@ Living task list. Work top-to-bottom; check off with a dated one-line note when 
 - 2026-06-15 — Phase 0.2 done: dashboard/app.py smoke test (164 with extra; skips without).
 - 2026-06-15 — Phase 0.3 done: store-migration + loop stop/iteration depth tests (172 passed). Phase 0 complete.
 - 2026-06-15 — Phase 1.1 done: dynamic ToolRegistry; loop dispatch routed through it (178 passed).
+- 2026-06-15 — Phase 1.2 done: StdioMCPClient (spawn/handshake/call external MCP servers) (184 passed).
