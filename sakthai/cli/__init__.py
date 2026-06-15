@@ -11,6 +11,7 @@ from .dashboard import dashboard as dashboard_cmd
 from .extensions import extensions as extensions_cmd
 from .memory import learn, recall
 from .memory import memory as memory_cmd
+from .sessions import sessions as sessions_cmd
 from .skills import skills as skills_cmd
 from .system import doctor, setup, status, tools
 
@@ -41,10 +42,11 @@ main.add_command(tools)
 main.add_command(run)
 main.add_command(mcp)
 
-# Skills, cycle, extensions, dashboard
+# Skills, cycle, extensions, dashboard, sessions
 main.add_command(skills_cmd)
 main.add_command(cycle_cmd)
 main.add_command(extensions_cmd)
 main.add_command(dashboard_cmd)
+main.add_command(sessions_cmd)
 
 __all__ = ["main"]
