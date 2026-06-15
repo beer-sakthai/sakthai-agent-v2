@@ -14,7 +14,11 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from sakthai.config import memory_db_path
-from sakthai.dashboard.data import SOURCE_DEMO, collect_dashboard_data
+from sakthai.dashboard.data import (
+    SOURCE_DEMO,
+    collect_dashboard_data,
+    collect_session_data,
+)
 
 
 def _kpi_row(kpis: dict[str, Any]) -> None:
@@ -61,11 +65,53 @@ def _category_chart(categories: list[dict[str, Any]]) -> None:
     st.plotly_chart(fig, use_container_width=True)
 
 
-def main() -> None:
-    st.set_page_config(layout="wide", page_title="SakThai Dashboard")
-    data = collect_dashboard_data(memory_db_path())
+def _session_kpi_row(totals: dict[str, Any]) -> None:
+    sessions, tokens, output = st.columns(3)
+    sessions.metric("Sessions", totals["sessions"])
+    tokens.metric("Total tokens", totals["total_tokens"])
+    output.metric("Output tokens", totals["output_tokens"])
 
-    st.title("SakThai — Memory Dashboard")
+
+def _session_timeline_chart(by_day: dict[str, Any]) -> None:
+    if not by_day["labels"]:
+        return
+    fig = go.Figure(go.Bar(x=by_day["labels"], y=by_day["sessions"], marker_color="#3b82f6"))
+    fig.update_layout(
+        title="Sessions per day",
+        margin={"l": 10, "r": 10, "t": 40, "b": 10},
+        height=320,
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def _token_usage_chart(by_model: list[dict[str, Any]]) -> None:
+    if not by_model:
+        return
+    fig = go.Figure(
+        go.Bar(
+            x=[m["total_tokens"] for m in by_model],
+            y=[m["model"] for m in by_model],
+            orientation="h",
+            marker_color="#a855f7",
+        )
+    )
+    fig.update_layout(
+        title="Token usage by model",
+        margin={"l": 10, "r": 10, "t": 40, "b": 10},
+        height=320,
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def _sessions_table(recent_sessions: list[dict[str, Any]]) -> None:
+    if recent_sessions:
+        st.dataframe(pd.DataFrame(recent_sessions), use_container_width=True, hide_index=True)
+    else:
+        st.write('No agent sessions yet. Run `sakthai run "..."`.')
+
+
+def _render_memory_tab() -> None:
+    data = collect_dashboard_data(memory_db_path())
     if data["source"] == SOURCE_DEMO:
         st.info('Memory is empty — showing demo data. Try `sakthai learn "..."`.')
     else:
@@ -92,6 +138,34 @@ def main() -> None:
         )
     else:
         st.write("No observations yet.")
+
+
+def _render_activity_tab() -> None:
+    sessions = collect_session_data()
+    if sessions["source"] != "live":
+        st.info('No agent runs recorded yet. Run `sakthai run "..."` to populate this tab.')
+
+    _session_kpi_row(sessions["totals"])
+
+    left, right = st.columns(2)
+    with left:
+        _session_timeline_chart(sessions["by_day"])
+    with right:
+        _token_usage_chart(sessions["by_model"])
+
+    st.subheader("Recent sessions")
+    _sessions_table(sessions["recent_sessions"])
+
+
+def main() -> None:
+    st.set_page_config(layout="wide", page_title="SakThai Dashboard")
+    st.title("SakThai — Dashboard")
+
+    memory_tab, activity_tab = st.tabs(["Memory", "Agent Activity"])
+    with memory_tab:
+        _render_memory_tab()
+    with activity_tab:
+        _render_activity_tab()
 
 
 if __name__ == "__main__":

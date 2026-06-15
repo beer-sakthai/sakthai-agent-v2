@@ -112,9 +112,11 @@ Goal: session history + token charts in the Streamlit dashboard.
       run_agent session JSON logs and aggregates totals + by-day + by-model +
       recent runs (empty-safe, skips malformed files). 4 tests.
       (sakthai/dashboard/data.py, tests/test_dashboard_sessions.py)
-- [ ] 8.2 — Dashboard UI: "Agent Activity" tab (session timeline), "Token Usage"
-      tab (cumulative chart by model), "Recent Sessions" section.
-      (sakthai/dashboard/app.py)
+- [x] 8.2 — Dashboard UI — 2026-06-15: split the app into Memory + Agent Activity
+      tabs; the new tab shows session KPIs, a sessions-per-day timeline, token
+      usage by model, and a recent-sessions table (builders smoke-tested under the
+      dashboard extra). **Phase 8 complete.**
+      (sakthai/dashboard/app.py, tests/test_dashboard_app.py)
 
 ## Phase 9 — Future (deferred to v3)
 - [ ] Google ADK / Vertex AI cloud agent port ← CON #5
@@ -136,3 +138,7 @@ Goal: session history + token charts in the Streamlit dashboard.
 - 2026-06-15 — Phase 2 done: OpenAI/Ollama provider, integration guides, run_agent_loop tool (207 passed). **Phase 2 complete.**
 - 2026-06-15 — Phase 3 done: hermetic tests, strict mypy, updated docs. **Phase 3 complete.**
 - 2026-06-15 — Phase 4 done: WAL mode/locks, recursion guard, token pruning (209 passed). **Phase 4 complete.**
+- 2026-06-15 — Phase 5 done: API retry/backoff, token-usage tracking, sessions CLI, robust provider construction, safe backup, `run --dry-run` preflight. **Phase 5 complete.**
+- 2026-06-15 — Phase 6 done: providers extracted into sakthai/agent/providers/ (loop 823→369); integration test markers (CI `-m "not integration"`). **Phase 6 complete.**
+- 2026-06-15 — Phase 7 done: streaming — on_token interface + `run --stream`, Anthropic messages.stream, OpenAI SSE with tool-call reassembly. **Phase 7 complete.**
+- 2026-06-15 — Phase 8 done: dashboard session data layer + Agent Activity tab (timeline, token usage by model, recent sessions). **Phase 8 complete.** Phase 9 deferred to v3.

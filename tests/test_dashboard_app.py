@@ -64,3 +64,44 @@ def test_kpi_row_builds(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     assert ("Facts", 5) in metrics
     assert ("Observations", 2) in metrics
+
+
+def test_session_timeline_chart_skips_when_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[Any] = []
+    monkeypatch.setattr(app.st, "plotly_chart", lambda fig, **k: calls.append(fig))
+    app._session_timeline_chart({"labels": [], "sessions": [], "tokens": []})
+    assert calls == []
+
+
+def test_session_timeline_chart_builds(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, Any] = {}
+    monkeypatch.setattr(app.st, "plotly_chart", lambda fig, **k: captured.setdefault("fig", fig))
+    app._session_timeline_chart({"labels": ["d1", "d2"], "sessions": [1, 2], "tokens": [10, 20]})
+    assert captured["fig"].data
+
+
+def test_token_usage_chart_skips_when_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[Any] = []
+    monkeypatch.setattr(app.st, "plotly_chart", lambda fig, **k: calls.append(fig))
+    app._token_usage_chart([])
+    assert calls == []
+
+
+def test_token_usage_chart_builds(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, Any] = {}
+    monkeypatch.setattr(app.st, "plotly_chart", lambda fig, **k: captured.setdefault("fig", fig))
+    app._token_usage_chart([{"model": "m", "sessions": 1, "total_tokens": 42}])
+    assert captured["fig"].data
+
+
+def test_session_kpi_row_builds(monkeypatch: pytest.MonkeyPatch) -> None:
+    metrics: list[tuple[str, Any]] = []
+
+    class _Col:
+        def metric(self, label: str, value: Any, delta: str | None = None) -> None:
+            metrics.append((label, value))
+
+    monkeypatch.setattr(app.st, "columns", lambda n: (_Col(), _Col(), _Col()))
+    app._session_kpi_row({"sessions": 3, "total_tokens": 100, "output_tokens": 40})
+    assert ("Sessions", 3) in metrics
+    assert ("Total tokens", 100) in metrics
