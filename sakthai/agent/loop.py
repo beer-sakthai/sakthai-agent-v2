@@ -150,6 +150,7 @@ def run_agent(
     store: MemoryStore | None = None,
     client: Any | None = None,
     on_event: Callable[[str, dict[str, Any]], None] | None = None,
+    on_token: Callable[[str], None] | None = None,
     provider: str | None = None,
     skills: Sequence[str] = (),
 ) -> AgentResult:
@@ -157,7 +158,9 @@ def run_agent(
 
     ``max_seconds`` adds an optional wall-clock budget on top of
     ``max_iterations``. ``skills`` names skills whose instructions are injected
-    into the system prompt. ``client`` and ``store`` are injectable for testing.
+    into the system prompt. ``on_token`` (when set) receives assistant text
+    deltas as they stream from providers that support it. ``client`` and
+    ``store`` are injectable for testing.
     """
     if not task.strip():
         raise AgentError("Task must be a non-empty string.")
@@ -200,14 +203,18 @@ def run_agent(
 
             system = _build_system(store, skills_block)
             if provider == "google":
-                response: Any = _call_gemini(client, model, system, tools, messages, iteration)
+                response: Any = _call_gemini(
+                    client, model, system, tools, messages, iteration, on_token=on_token
+                )
                 usage_tracker.record(**response.usage)
             elif provider == "openai":
-                response = _call_openai_compat(client, model, system, tools, messages, iteration)
+                response = _call_openai_compat(
+                    client, model, system, tools, messages, iteration, on_token=on_token
+                )
                 usage_tracker.record(**response.usage)
             else:
                 response = _call_anthropic(
-                    client, model, max_tokens, system, tool_schemas, messages
+                    client, model, max_tokens, system, tool_schemas, messages, on_token=on_token
                 )
                 usage_tracker.record(**extract_usage(response))
 

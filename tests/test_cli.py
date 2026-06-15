@@ -489,3 +489,35 @@ def test_run_dry_run_not_runnable_exits_nonzero(
     result = runner.invoke(main, ["run", "hi", "--dry-run", "--no-mcp", "-p", "anthropic"])
     assert result.exit_code != 0
     assert "runnable:    no" in result.output
+
+
+def test_run_stream_prints_streamed_tokens(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from sakthai.agent.loop import AgentResult
+
+    def fake_run_agent(task: str, *, on_token=None, **_kw: object) -> AgentResult:
+        if on_token is not None:
+            on_token("Hel")
+            on_token("lo")
+        return AgentResult(text="Hello", iterations=1, stop_reason="end_turn")
+
+    monkeypatch.setattr(agent_mod, "run_agent", fake_run_agent)
+    result = runner.invoke(main, ["run", "hi", "--stream", "--no-mcp"])
+    assert result.exit_code == 0, result.output
+    assert "Hello" in result.output
+
+
+def test_run_without_stream_prints_final_text(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from sakthai.agent.loop import AgentResult
+
+    def fake_run_agent(task: str, *, on_token=None, **_kw: object) -> AgentResult:
+        assert on_token is None
+        return AgentResult(text="final-answer", iterations=1, stop_reason="end_turn")
+
+    monkeypatch.setattr(agent_mod, "run_agent", fake_run_agent)
+    result = runner.invoke(main, ["run", "hi", "--no-mcp"])
+    assert result.exit_code == 0, result.output
+    assert "final-answer" in result.output

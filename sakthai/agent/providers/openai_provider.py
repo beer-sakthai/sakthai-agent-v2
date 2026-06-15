@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from typing import Any
 
 from ..tools import Tool
@@ -69,8 +70,13 @@ def call_openai_compat(
     tools: tuple[Tool, ...],
     messages: list[dict[str, Any]],
     iteration: int,
+    on_token: Callable[[str], None] | None = None,
 ) -> Response:
-    """Make one OpenAI-compatible chat completion, normalised to :class:`Response`."""
+    """Make one OpenAI-compatible chat completion, normalised to :class:`Response`.
+
+    ``on_token`` is accepted for interface parity; SSE streaming is implemented
+    in a later task.
+    """
     openai_tools = [
         {
             "type": "function",

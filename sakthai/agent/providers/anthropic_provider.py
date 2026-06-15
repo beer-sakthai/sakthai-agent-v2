@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 import anthropic
@@ -16,8 +17,13 @@ def call_anthropic(
     system: str,
     tool_schemas: list[dict[str, Any]],
     messages: list[dict[str, Any]],
+    on_token: Callable[[str], None] | None = None,
 ) -> Any:
-    """Make one Claude Messages API call, returning the raw SDK response."""
+    """Make one Claude Messages API call, returning the raw SDK response.
+
+    ``on_token`` is accepted for interface parity; streaming is implemented in a
+    later task.
+    """
     try:
         return with_retry(
             client.messages.create,

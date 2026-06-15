@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from ..tools import Tool
@@ -61,8 +62,13 @@ def call_gemini(
     tools: tuple[Tool, ...],
     messages: list[dict[str, Any]],
     iteration: int,
+    on_token: Callable[[str], None] | None = None,
 ) -> Response:
-    """Make one Gemini generate_content call, normalised to :class:`Response`."""
+    """Make one Gemini generate_content call, normalised to :class:`Response`.
+
+    ``on_token`` is accepted for interface parity; Gemini streaming is not yet
+    implemented.
+    """
     from google.genai import types
 
     declarations: list[Any] = [

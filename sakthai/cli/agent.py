@@ -105,6 +105,11 @@ def _event_emitter(verbose: bool) -> Callable[[str, dict[str, Any]], None]:
     is_flag=True,
     help="Validate the run (provider, credentials, model, tools) without calling the API.",
 )
+@click.option(
+    "--stream",
+    is_flag=True,
+    help="Stream the assistant's reply to stdout as it is generated.",
+)
 def run(
     task: str,
     model: str,
@@ -116,6 +121,7 @@ def run(
     no_mcp: bool,
     with_skills: tuple[str, ...],
     dry_run: bool,
+    stream: bool,
 ) -> None:
     """Run TASK through the standalone SakThai agent.
 
@@ -134,6 +140,13 @@ def run(
                 f"Not runnable: no credentials found for provider {report['provider']!r}."
             )
         return
+    streamed = False
+
+    def _on_token(text: str) -> None:
+        nonlocal streamed
+        streamed = True
+        click.echo(text, nl=False)
+
     try:
         with _tool_context(no_mcp=no_mcp, verbose=verbose) as tools:
             result = run_agent(
@@ -143,6 +156,7 @@ def run(
                 max_iterations=max_iterations,
                 max_seconds=max_seconds,
                 on_event=_event_emitter(verbose),
+                on_token=_on_token if stream else None,
                 provider=provider,
                 tools=tools,
                 skills=list(with_skills),
@@ -152,7 +166,10 @@ def run(
     except KeyboardInterrupt:
         click.echo("\nInterrupted.", err=True)
         sys.exit(130)
-    click.echo(result.text)
+    if streamed:
+        click.echo("")  # terminate the streamed line
+    else:
+        click.echo(result.text)
 
 
 @click.command()

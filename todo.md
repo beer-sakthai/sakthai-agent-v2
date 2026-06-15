@@ -92,9 +92,10 @@ Goal: loop.py drops from ~700 to ~300 lines by extracting providers.
 ## Phase 7 — Streaming output ← CON #2, #3
 Goal: progressive token display instead of waiting for full response.
 
-- [ ] 7.1 — Streaming callback interface: add `on_token: Callable | None` param
-      to run_agent + provider call(). CLI `--stream` flag wires it to stdout.
-      (sakthai/agent/loop.py, sakthai/cli/agent.py)
+- [x] 7.1 — Streaming callback interface — 2026-06-15: `on_token` param threaded
+      through run_agent → all three provider calls (accepted now; provider impls
+      land in 7.2/7.3); `sakthai run --stream` wires it to stdout and falls back
+      to printing the final text when nothing streamed. 4 tests.
 - [ ] 7.2 — Anthropic streaming: when on_token provided, use
       client.messages.stream() and yield deltas.
       (sakthai/agent/providers/anthropic.py, tests/test_streaming.py)

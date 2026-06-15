@@ -707,3 +707,24 @@ def test_preflight_makes_no_api_call(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(loop_mod, "anthropic_credential_source", lambda: "api_key")
     report = loop_mod.preflight(provider="anthropic")
     assert report["runnable"] is True
+
+
+# -- 7.1 streaming callback interface -----------------------------------
+
+
+def test_run_agent_accepts_on_token(store: MemoryStore) -> None:
+    tokens: list[str] = []
+    client = FakeClient([_Resp("end_turn", [_Block(type="text", text="hi")])])
+    result = run_agent(
+        "x", client=client, store=store, provider="anthropic", on_token=tokens.append
+    )
+    assert result.text == "hi"
+
+
+def test_provider_calls_accept_on_token() -> None:
+    import inspect
+
+    from sakthai.agent.providers import call_anthropic, call_gemini, call_openai_compat
+
+    for fn in (call_anthropic, call_gemini, call_openai_compat):
+        assert "on_token" in inspect.signature(fn).parameters
