@@ -130,9 +130,21 @@ Goal: Make the agent fully runnable and resolve past architecture cons. One task
 - [x] 10.3 — Remote Memory Sync: Implement `sakthai memory sync` for cloud or git backups to reduce local state dependency.
 - [x] 10.4 — Basic Cloud Runtime Stubs: Migrate Google ADK / Vertex AI skeleton into v2 for future deployment.
 
+## Phase 11 — Robust Memory Sync & Scalability
+Goal: Resolve cons in the Git sync implementation and prepare for standalone agent resilience.
+
+- [x] 11.1 — Incremental JSON Exports: Split `snapshot.json` into `facts.jsonl` and `observations.jsonl` to reduce Git bloat.
+- [x] 11.2 — Auto-Merge Strategy: Intercept Git conflicts on JSONL files and merge by `id`.
+- [x] 11.3 — Zero-Dependency HTTP Fallback: Provide a simple HTTP POST export fallback for syncing without local Git.
+- [x] 11.4 — SQLite Replication Exploration: Evaluate wrapper for Turso/Litestream true DB replication.
+
 ---
 
 ## Log
+- 2026-06-16 — Phase 11.4 done: documented Turso/Litestream architectural evaluation in docs/replication.md.
+- 2026-06-16 — Phase 11.3 done: added `--http-url` zero-dependency fallback to `sakthai memory sync`.
+- 2026-06-16 — Phase 11.2 done: implemented auto-merge strategy utilizing local sqlite DB to resolve git JSONL conflicts seamlessly.
+- 2026-06-16 — Phase 11.1 done: updated memory sync to dump incremental `facts.jsonl` and `observations.jsonl`.
 - 2026-06-16 — Phase 10.4 done: Migrated Google ADK/Vertex AI skeleton into v2 as cloud runtime stubs.
 - 2026-06-16 — Phase 10.3 done: implemented `sakthai memory sync` (Git-backed remote) and added the `sakthai-memory-admin` skill.
 - 2026-06-16 — Phase 10.2 done: implemented --fast mode to bypass cycle overhead.
