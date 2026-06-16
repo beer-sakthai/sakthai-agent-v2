@@ -15,11 +15,14 @@ jobs:
         with:
           fetch-depth: 0
       - name: Detect secrets (gitleaks)
-        uses: gitleaks/gitleaks-action@v2
-        with:
-          config-path: .gitleaks.toml
-          fail: true
-        continue-on-error: false
+        # Run the gitleaks binary directly rather than gitleaks-action@v2, which
+        # now requires GITHUB_TOKEN to scan PRs and rejects config-path/fail
+        # inputs. The binary scans full history (fetch-depth: 0) with no token.
+        run: |
+          VER=8.21.2
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_linux_x64.tar.gz" \
+            | tar -xz gitleaks
+          ./gitleaks detect --source . --config .gitleaks.toml --redact --no-banner --exit-code 1
 
   test:
     needs: secret-scan
