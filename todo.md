@@ -177,9 +177,13 @@ caution — v2 is intentionally curated, so triage before bulk-adding.
 - [ ] colab_training/ + scripts/finetune_sakthai.py (LoRA)  •  data/hermes-dataset
 - [ ] Explicitly NOT porting: artifacts/junk (reports, logs, pngs, scratch/, benchmarks)
 
+### 12.6 — Extension Integration
+- [x] Workflows & Caveman Integration Audit (docs/workflows_caveman_integration_audit.md) — 2026-06-17
+
 ---
 
 ## Log
+- 2026-06-17 — Phase 12.6 done: completed workflows and caveman integration audit and saved to docs/workflows_caveman_integration_audit.md.
 - 2026-06-16 — Phase 12 added: OG→v2 information-parity audit (identity/governance
   docs, skills 111→8, library 357→~20, code/feature gaps) recorded for triage.
 - 2026-06-16 — Phase 11.4 done: documented Turso/Litestream architectural evaluation in docs/replication.md.
