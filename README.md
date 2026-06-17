@@ -4,9 +4,9 @@ A personal, learning agent with persistent memory. SakThai gives a Claude (or Ge
 
 ## What's here
 
-- **Persistent memory** — a SQLite store of *facts* (things you tell it) and *observations* (things it concludes), with search, tagging, dedupe, consolidation, and import/export.
-- **Explicit capture** — `sakthai learn "..."` records a fact directly.
-- **Agent loop** — `sakthai run "<task>"` runs a tool-using Claude/Gemini loop that injects your memory into the system prompt.
+- **Persistent memory** — a SQLite store of *facts* (things you tell it) and *observations* (things it concludes), with search, tagging, WAL-concurrency, auto-merge dedupe/consolidation, and multi-modal import/export/sync (Git JSONL merge + HTTP backup).
+- **Extensive skills library** — a curated catalog of **48 skills** across categories (coding, devops, security, memory, agent, llm, safety, observability, research, learning).
+- **Agent loop** — `sakthai run "<task>"` runs a tool-using Claude/Gemini/OpenAI/Ollama loop that injects memory and active skills into the system prompt. Supports `--fast` mode to bypass stage checks.
 - **MCP server** — `sakthai mcp` exposes the memory tools over MCP stdio (JSON-RPC) so editors and other agents can share the same memory.
 - **6-stage cycle** — a lightweight Dream → Hope → Care → Joy → Trust → Growth state machine persisted in memory.
 
@@ -40,10 +40,11 @@ All runtimes share `~/.sakthai/memory.db` (override with `SAKTHAI_HOME`).
 ## Develop
 
 ```bash
-python -m pytest tests/ -q
-ruff check sakthai && ruff format --check sakthai
-mypy sakthai
-bandit -c pyproject.toml -r sakthai
+python -m pytest --cov=sakthai tests/   # run test suite with coverage report (92%+)
+ruff check sakthai tests                # lint check
+ruff format --check sakthai tests       # formatting verification
+mypy sakthai                            # strict type checking
+bandit -c pyproject.toml -r sakthai     # security scan
 ```
 
 ### Git worktree workflow
