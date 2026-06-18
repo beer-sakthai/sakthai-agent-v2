@@ -45,7 +45,7 @@ sakthai run "summarise my notes"     # standalone agent loop
 sakthai mcp                          # serve memory tools over MCP stdio
 sakthai cycle status|next|set|list   # the 6-stage cycle
 sakthai skills list|show|validate    # skill catalog
-sakthai dashboard                    # Streamlit dashboard
+sakthai dashboard                    # Modern React dashboard
 sakthai tools                        # list agent/MCP tools
 ```
 
