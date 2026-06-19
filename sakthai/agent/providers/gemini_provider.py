@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from ..tools import Tool
 from ..usage import extract_usage
@@ -106,7 +106,7 @@ def _create_tool_declarations(tools: tuple[Tool, ...]) -> list[Any]:
         types.Tool(
             function_declarations=[
                 types.FunctionDeclaration(
-                    name=t.name, description=t.description, parameters=t.input_schema
+                    name=t.name, description=t.description, parameters=cast(Any, t.input_schema)
                 )
             ]
         )
