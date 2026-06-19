@@ -40,12 +40,14 @@ mypy sakthai                                    # strict type-check
 bandit -c pyproject.toml -r sakthai             # security scan
 ```
 
-CI runs the lint → format-check → mypy → bandit → pytest sequence on Python
-**3.11, 3.12, and 3.13**. Run it locally before pushing; green CI is the bar for `main`.
-CI runs secret-scan → lint → format-check → mypy → bandit → pytest on Python
-**3.11 and 3.12** via uv. Run it locally before pushing; green CI is the bar for
-`main`. Coverage floor is **85%** (`fail_under = 85`); `dashboard/app.py` is
-excluded from coverage (it's presentation glue).
+CI (`.github/workflows/ci.yml`, all via `uv sync --extra dev --locked`) runs:
+secret-scan (gitleaks) → lint (ruff) → format-check → mypy → bandit → pytest
+across Python **3.11, 3.12, and 3.13**, then a separate **smoke-test** job that
+drives the live CLI + MCP server via
+`.claude/skills/run-sakthai-agent-v2/driver.py`. Run the lint→pytest sequence
+locally before pushing; green CI is the bar for `main`. Coverage floor is **85%**
+(`fail_under = 85`); `dashboard/app.py` is excluded from coverage (it's
+presentation glue).
 
 ---
 
@@ -109,10 +111,11 @@ CLI/MCP → agent loop → tool registry → MemoryStore → SQLite. See
 
 ### Agent subsystem (`agent/`)
 
-- **`agent/tools.py`** — defines `BUILTIN_TOOLS` (10 tools, one schema + handler
-  each): `learn`, `recall`, `search`, `forget`, `list_facts`, `read_file`,
-  `run_command`, `send_telegram_message`, `healthcheck`, `render_memory`. Add a
-  tool here and it appears in both the agent loop and the MCP server automatically.
+- **`agent/tools.py`** — defines `BUILTIN_TOOLS` (8 tools, one schema + handler
+  each): `learn`, `recall`, `search`, `forget`, `read_file`, `run_command`,
+  `send_telegram_message`, `run_agent_loop`. Add a tool here and it appears in
+  both the agent loop and the MCP server automatically. Note: `run_agent_loop`
+  is filtered out of the in-loop tool set (it's MCP-only) to avoid recursion.
 - **`agent/registry.py`** — `ToolRegistry` keys tools by name; `with_tools()`
   merges sets (later tool wins on name clash, so plugins can shadow built-ins).
 - **`agent/loop.py`** — `run_agent()` is the main orchestration loop. Injects
@@ -124,7 +127,8 @@ CLI/MCP → agent loop → tool registry → MemoryStore → SQLite. See
   - `base.py` — shared types (`Block`, `Response`), retry logic via `tenacity`
   - `anthropic_provider.py` — Claude via `anthropic` SDK
   - `gemini_provider.py` — Gemini via `google-genai`
-  - `openai_provider.py` — OpenAI-compatible APIs and Ollama via `httpx`
+  - `openai_provider.py` — OpenAI-compatible APIs, Ollama, and the `gateway`
+    provider (OpenRouter/LiteLLM/Vercel/Cloudflare AI gateways) via `httpx`
   - `__init__.py` — provider detection and client factory
 
 ### MCP subsystem (`mcp/`)
@@ -169,8 +173,8 @@ Click commands split by area; all sub-files imported by `cli/__init__.py`:
   stage as a single fact in the store (kind=`cycle`, key=`current_stage`).
 - **`skills.py` + `skills/` + `library/`** — parse/catalog/validate `SKILL.md`
   files (YAML frontmatter: name, category, description, version, platforms, tags,
-  related_skills). `library/` has 48 curated skills across 11 categories;
-  `skills/` has 18 user/extension skills. Skills are injected into the agent
+  related_skills). `library/` has 31 curated skills across 11 categories;
+  `skills/` has 17 user/extension skills. Skills are injected into the agent
   system prompt via `render_skills_prompt_block()`.
 - **`dashboard/`** — `data.py` builds a UI-free, testable snapshot of the store
   (KPIs, growth series, per-kind breakdown, date-range filtering). `app.py`
@@ -213,9 +217,9 @@ sakthai-agent-v2/
 │   ├── extensions/           # install.py (git-based bundle installer)
 │   ├── dashboard/            # data.py (snapshot) + app.py (Streamlit)
 │   └── web/                  # HTTP server stub
-├── tests/                    # 33 test files, hermetic, no network
-├── skills/                   # 18 user/extension SKILL.md folders
-├── library/                  # 48 curated skills in 11 categories
+├── tests/                    # 37 test files, hermetic, no network
+├── skills/                   # 17 user/extension SKILL.md folders
+├── library/                  # 31 curated skills in 11 categories
 ├── docs/                     # Architecture & design docs
 ├── scripts/                  # Dev utilities (not linted/type-checked)
 ├── data/                     # Sample memory exports (JSONL/CSV)
@@ -227,7 +231,7 @@ sakthai-agent-v2/
 
 ## Tests
 
-Tests live in `tests/` (33 files, ~8400 lines). All tests are hermetic — no
+Tests live in `tests/` (37 files, ~9300 lines). All tests are hermetic — no
 network, no GCP credentials. Integration tests that may hit real endpoints
 (Ollama, Anthropic) are marked `@pytest.mark.integration` and self-skip when
 credentials/endpoints are absent; CI excludes them with `-m "not integration"`.
@@ -294,6 +298,8 @@ reach out to a real endpoint. Use `tmp_path` fixtures for file I/O.
 | `OPENAI_API_KEY` | Key for OpenAI-compatible gateway (defaults to `nokey`) |
 | `OPENAI_API_BASE` / `OPENAI_BASE_URL` | Base URL for OpenAI-compatible endpoint |
 | `OLLAMA_HOST` | Ollama server address (default: `http://127.0.0.1:11434`) |
+| `SAKTHAI_GATEWAY_URL` | Base URL of an OpenAI-compatible AI gateway (OpenRouter/LiteLLM/Vercel/Cloudflare) — enables the `gateway` provider |
+| `SAKTHAI_GATEWAY_API_KEY` | Bearer token for the AI gateway (defaults to `nokey`) |
 | `SAKTHAI_HOME` | Override the `~/.sakthai` root (memory db, sessions, extensions) |
 | `SAKTHAI_READ_ALLOW` | Colon-separated extra paths the `read_file` tool may read |
 | `SAKTHAI_SHELL_ALLOW` | Any non-empty value enables the `run_command` tool |
