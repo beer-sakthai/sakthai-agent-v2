@@ -4,7 +4,7 @@ model:
   base_url: https://generativelanguage.googleapis.com/v1beta
   auth_mode: api_key
   context_length: 400000
-  api_key: H9hhwS50qwxJIORLdXbIgFHMUeMKyn4h
+  api_key: ''  # set via env, never commit
 providers: {}
 fallback_providers: []
 credential_pool_strategies: {}
@@ -676,7 +676,7 @@ known_plugin_toolsets:
 custom_providers:
 - name: mistral-code208
   base_url: https://api.mistral.ai/v1
-  api_key: H9hhwS50qwxJIORLdXbIgFHMUeMKyn4h
+  api_key: ''  # set via env, never commit
   model: codestral-2508
   models:
     codestral-2508:
