@@ -397,6 +397,7 @@ def test_setup_interactive_create_env(
     example = tmp_path / ".env.example"
     example.write_text("ANTHROPIC_API_KEY=\n", encoding="utf-8")
     monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
 
     # Run setup with interactive=True and say 'y' to creating .env
     # We also need to handle the API key prompt that follows
