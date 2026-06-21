@@ -12,6 +12,19 @@
     "use_count": 1,
     "view_count": 1
   },
+  "cron-watchdog-self-heal": {
+    "archived_at": null,
+    "created_at": "2026-06-21T10:30:48.036725+00:00",
+    "created_by": null,
+    "last_patched_at": null,
+    "last_used_at": "2026-06-21T14:38:48.586556+00:00",
+    "last_viewed_at": "2026-06-21T11:06:38.730923+00:00",
+    "patch_count": 0,
+    "pinned": false,
+    "state": "active",
+    "use_count": 32,
+    "view_count": 2
+  },
   "gif-search": {
     "archived_at": null,
     "created_at": "2026-06-20T09:49:06.319186+00:00",
@@ -55,14 +68,40 @@
     "archived_at": null,
     "created_at": "2026-06-20T15:56:14.551248+00:00",
     "created_by": null,
+    "last_patched_at": "2026-06-21T11:07:02.736083+00:00",
+    "last_used_at": "2026-06-21T14:32:33.736307+00:00",
+    "last_viewed_at": "2026-06-21T14:32:33.726282+00:00",
+    "patch_count": 2,
+    "pinned": false,
+    "state": "active",
+    "use_count": 34,
+    "view_count": 34
+  },
+  "kanban-orchestrator": {
+    "archived_at": null,
+    "created_at": "2026-06-21T10:24:17.294609+00:00",
+    "created_by": null,
     "last_patched_at": null,
-    "last_used_at": "2026-06-21T03:52:49.373088+00:00",
-    "last_viewed_at": "2026-06-21T03:52:49.365073+00:00",
+    "last_used_at": "2026-06-21T10:24:17.343259+00:00",
+    "last_viewed_at": "2026-06-21T10:24:17.294912+00:00",
     "patch_count": 0,
     "pinned": false,
     "state": "active",
-    "use_count": 7,
-    "view_count": 7
+    "use_count": 1,
+    "view_count": 1
+  },
+  "kanban-worker": {
+    "archived_at": null,
+    "created_at": "2026-06-21T10:24:17.333486+00:00",
+    "created_by": null,
+    "last_patched_at": null,
+    "last_used_at": "2026-06-21T10:24:17.354523+00:00",
+    "last_viewed_at": "2026-06-21T10:24:17.333509+00:00",
+    "patch_count": 0,
+    "pinned": false,
+    "state": "active",
+    "use_count": 1,
+    "view_count": 1
   },
   "llama-cpp": {
     "archived_at": null,

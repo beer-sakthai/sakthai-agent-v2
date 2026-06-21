@@ -9,7 +9,7 @@ Use this skill anytime the task involves Ireland-focused business research: vali
 
 ## Workflow
 1. Parse the exact Irish business entity or topic from the request.
-2. Use `web_search` with Ireland-specific queries: add `site:.ie`, `Ireland`, `companies registration office Ireland`, `IDFA`, `Forfás`, `Enterprise Ireland`, `CSO Ireland`, and `Central Bank Ireland` as relevant.
+2. Use `web_search` with Ireland-specific queries: add `site:.ie`, `Ireland`, `companies registration office Ireland`, `IDA`, `Forfás`, `Enterprise Ireland`, `CSO Ireland`, and `Central Bank Ireland` as relevant.
 3. Use `web_extract` on authoritative sources: CRO (`cro.ie`), CSO (`cso.ie`), IDA Ireland, Forfás, Financial Regulators, enterprise bodies, company websites, and filings.
 4. Capture structured facts:
    - Company name + registration number
@@ -28,4 +28,7 @@ Use this skill anytime the task involves Ireland-focused business research: vali
    - Market concentration and competitive landscape
    - Economic indicators from CSO
 7. Save durable findings with `memory(target='user', action='add', content=...)` for multi-job retention.
-8. If any source is paywalled or unavailable, note the limitation clearly instead of guessing values.
+8. Tool transport check and graceful degradation:
+   - Before heavy web validation, probe `web_search` with a lightweight Ireland query (for example, `site:.ie Ireland business`). If it returns a `BILLING_ERROR` or transport failure, stop, report that live source validation was skipped due to tool unavailability, and do not guess company facts from stale training data.
+   - If a specific source (`web_extract`) is paywalled or returns no content, note the limitation clearly and exclude that source from the final facts, but still report what you did find from other sources.
+   - Never fabricate filing numbers, incorporation dates, or director names when the registry search failed.
