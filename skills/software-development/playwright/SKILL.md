@@ -33,6 +33,9 @@ npx -y playwright@1.61.0 install --with-deps chromium
 `--with-deps` pulls the required system libraries (libnss3, libgbm1, …) — without
 it Chromium fails with missing `.so` errors. Verified working in this sandbox.
 
+## Scaffolding existing projects
+Re-running `npm init playwright@latest` is safe — it **will not overwrite** existing tests or config files. Good for refreshing scaffolding without losing hand-written work.
+
 ## Running a script
 1. Save your script to a file, e.g. `script.js`.
 2. Execute it with:
@@ -87,4 +90,4 @@ When to use: whenever asserting DOM state, URL, network responses, or accessibil
 | Playwright binary not found | Browsers not downloaded | `npx playwright install --with-deps chromium` |
 | Permission errors | Write perms in working dir | Work under `/tmp` |
 | "Can't find project / no such dir" | Looking for a persistent workspace that doesn't exist in the sandbox | Create under `/tmp`, or `git clone` the repo first |
-
+| Overwriting existing tests on re-init | Running `npm init playwright@latest` twice blindly | Safe to re-run; it skips existing files |

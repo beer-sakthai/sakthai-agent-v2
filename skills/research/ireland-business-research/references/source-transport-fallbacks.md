@@ -19,5 +19,7 @@ Validated: 2026-06-21 maintenance run.
 
 1. **General web_search** with targeted terms: `"<company>" Ireland company registration number`, `"<company>" annual report directors`, `"<company>" CRO`.
    - Best results come from SEC filings (20-F), investor relations annual reports, and Wikipedia for large public companies.
+   - Annual report PDFs often state the Irish company registration number explicitly (e.g., Ryanair 249885).
+   - Third-party business databases such as `solocheck.ie` and `globaldatabase.com` regularly mirror CRO registration numbers, incorporation dates, and director counts.
 2. **Search business.ie homepage** only confirms the service exists; it does not reliably surface a specific company profile.
 3. **Do not fabricate** registration numbers, incorporation dates, or directors when direct extraction failed.
