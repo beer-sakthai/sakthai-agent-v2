@@ -635,3 +635,11 @@ platform_toolsets:
     - hermes-google_chat
 image_gen:
   use_gateway: true
+mcp_servers:
+  supermemory:
+    url: https://mcp.supermemory.ai/mcp
+    headers:
+      Authorization: Bearer ${MCP_SUPERMEMORY_API_KEY}
+    enabled: true
+    timeout: 120
+    connect_timeout: 30
