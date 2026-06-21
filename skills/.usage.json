@@ -56,12 +56,12 @@
     "created_at": "2026-06-21T10:30:48.036725+00:00",
     "created_by": null,
     "last_patched_at": null,
-    "last_used_at": "2026-06-21T22:24:02.072258+00:00",
+    "last_used_at": "2026-06-21T22:36:05.814645+00:00",
     "last_viewed_at": "2026-06-21T11:06:38.730923+00:00",
     "patch_count": 0,
     "pinned": false,
     "state": "active",
-    "use_count": 105,
+    "use_count": 107,
     "view_count": 2
   },
   "css-content-visibility": {
@@ -173,13 +173,13 @@
     "created_at": "2026-06-20T15:56:14.551248+00:00",
     "created_by": null,
     "last_patched_at": "2026-06-21T21:58:41.163383+00:00",
-    "last_used_at": "2026-06-21T22:20:14.047991+00:00",
-    "last_viewed_at": "2026-06-21T22:20:14.035686+00:00",
+    "last_used_at": "2026-06-21T22:40:40.832082+00:00",
+    "last_viewed_at": "2026-06-21T22:40:40.774095+00:00",
     "patch_count": 8,
     "pinned": false,
     "state": "active",
-    "use_count": 94,
-    "view_count": 94
+    "use_count": 100,
+    "view_count": 100
   },
   "kanban-orchestrator": {
     "archived_at": null,
@@ -238,13 +238,26 @@
     "created_at": "2026-06-20T07:15:11.307653+00:00",
     "created_by": "agent",
     "last_patched_at": "2026-06-20T08:44:58.194359+00:00",
-    "last_used_at": "2026-06-21T22:25:31.472416+00:00",
-    "last_viewed_at": "2026-06-21T22:25:31.459913+00:00",
+    "last_used_at": "2026-06-21T22:36:56.806425+00:00",
+    "last_viewed_at": "2026-06-21T22:36:56.366731+00:00",
     "patch_count": 1,
     "pinned": false,
     "state": "active",
-    "use_count": 19,
-    "view_count": 19
+    "use_count": 21,
+    "view_count": 21
+  },
+  "playwright-trace-viewer-debugging": {
+    "archived_at": null,
+    "created_at": "2026-06-21T22:30:28.350339+00:00",
+    "created_by": null,
+    "last_patched_at": null,
+    "last_used_at": "2026-06-21T22:30:28.511176+00:00",
+    "last_viewed_at": "2026-06-21T22:30:28.350449+00:00",
+    "patch_count": 0,
+    "pinned": false,
+    "state": "active",
+    "use_count": 1,
+    "view_count": 1
   },
   "plg-funnel-economics": {
     "archived_at": null,
