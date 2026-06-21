@@ -86,6 +86,14 @@ Use this skill when asked to run a learning loop: periodically pick a fresh, spe
 - **Outcome**: Authored a class-level skill covering `HfApi.update_repo_settings(gated="auto"/"manual"/False)`, the full access-request lifecycle (`list_pending`, `accept`, `reject`, `cancel`, `grant`), `AccessRequest.fields` for custom form review, `extra_gated_eu_disallowed` geographic restriction, access reports via REST, and the confirmation that no bulk-accept method exists.
 - **Overlap note**: This skill has a light overlap with `hf-fine-grained-tokens` (both touch access control). They map cleanly: `hf-fine-grained-tokens` = token creation / org policies / RBAC; `hf-gated-repos` = repo-side gating and access-request lifecycle. If consolidating, merge gating config + access request methods under an umbrella, keep token mechanics separate.
 
+## Case study: Hugging Face Sentence Transformers (2026-06-22)
+
+- **Topic**: `Sentence Transformers on Hugging Face` (`hf-sentence-transformers`)
+- **Skill path**: `~/.hermes/profiles/hermesagent/skills/mlops/hf-sentence-transformers/SKILL.md`
+- **Research challenge**: `web_extract` returned HTTP 402 billing errors on `huggingface.co/docs/hub/en/sentence-transformers` and GitHub raw content. `mcp_huggingface_hf_doc_fetch` and `mcp_huggingface_hf_hub_query` were unavailable or timed out.
+- **Workaround used**: `web_search` for authoritative sources (docs.huggingface.co, sbert.net) and `mcp_huggingface_hub_repo_search` to enumerate popular sentence-transformers models on the Hub by downloads. Combined results into a class-level skill without requiring full doc fetches.
+- **Outcome**: Authored a class-level skill covering SentenceTransformer, CrossEncoder, and SparseEncoder model types; local usage; Inference API via `pipeline/feature-extraction/{model_id}`; production serving with TEI; publishing via `save_to_hub()`; MTEB benchmarking; model family cheat sheet (all-*, E5, BGE, EmbeddingGemma); and common pitfalls (dimension mismatch, Matryoshka embeddings, API cold starts).
+
 ## Pitfalls
 
 - **Flat skills are discouraged.** A skill that only makes sense for a single session, PR, or date is a memory entry, not a skill.
