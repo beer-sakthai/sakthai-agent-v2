@@ -4,26 +4,26 @@
     "created_at": "2026-06-21T04:36:42.811500+00:00",
     "created_by": "agent",
     "last_patched_at": "2026-06-21T14:18:42.746696+00:00",
-    "last_used_at": "2026-06-21T17:47:01.377030+00:00",
-    "last_viewed_at": "2026-06-21T17:47:01.354280+00:00",
+    "last_used_at": "2026-06-21T18:18:00.496228+00:00",
+    "last_viewed_at": "2026-06-21T18:18:00.487748+00:00",
     "patch_count": 6,
     "pinned": false,
     "state": "active",
-    "use_count": 55,
-    "view_count": 55
+    "use_count": 56,
+    "view_count": 56
   },
   "hermes-agent": {
     "archived_at": null,
     "created_at": "2026-06-20T11:46:52.163078+00:00",
     "created_by": null,
     "last_patched_at": null,
-    "last_used_at": "2026-06-21T16:48:16.804025+00:00",
-    "last_viewed_at": "2026-06-21T16:48:16.797001+00:00",
+    "last_used_at": "2026-06-21T18:04:32.019056+00:00",
+    "last_viewed_at": "2026-06-21T18:04:32.010696+00:00",
     "patch_count": 0,
     "pinned": false,
     "state": "active",
-    "use_count": 10,
-    "view_count": 10
+    "use_count": 11,
+    "view_count": 11
   },
   "huggingface-hub": {
     "archived_at": null,
