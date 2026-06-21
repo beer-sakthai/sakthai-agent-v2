@@ -33,23 +33,30 @@ The CLI supports common job operations:
 ```bash
 hf jobs list                    # List recent jobs
 hf jobs logs <job-id>           # Stream logs
-hf jobs stats <job-id>          # Resource usage
+hf jobs metrics <job-id>        # Resource usage (was 'stats' in older docs)
 hf jobs inspect <job-id>        # Inspect job definition
 hf jobs cancel <job-id>         # Cancel a running job
+hf jobs wait <id1> <id2>        # Block until terminal; exit 0 only if all succeeded
+hf jobs uv run train.py --gpu   # UV-based Python workload
 hf jobs run ... --schedule "*/5 * * * *"  # Scheduled job
 ```
 
 ### 2. Python SDK (`huggingface_hub`)
 ```python
-from huggingface_hub import HfApi
+from huggingface_hub import run_job, run_uv_job, wait_for_job
 
-api = HfApi()
+# Standard Docker-based job
+run_job(
+    image="python:3.12",
+    command=["python", "train.py"],
+    flavor="a10g-small",
+)
 
-# Run a simple UV script on GPU
-api.run_job(
-    command="uv run train.py",
-    hardware="cpu" | "gpu" | "tpu",
-    # Various other options...
+# UV-based job (self-contained Python with inline dependencies)
+run_uv_job(
+    "train.py",
+    flavor="a10g-small",
+    dependencies=["transformers", "torch"],
 )
 ```
 
@@ -124,8 +131,9 @@ Webhook payloads contain enough context (e.g., updated model repo) for the job t
 
 ## References
 
-- **Docs**: https://huggingface.co/docs/hub/main/en/jobs-overview
-- **Quickstart**: https://huggingface.co/docs/hub/main/en/jobs-quickstart
+- **Docs**: https://huggingface.co/docs/huggingface_hub/en/guides/jobs
+- **Quickstart**: https://huggingface.co/docs/huggingface_hub/en/guides/jobs
 - **Pricing**: https://huggingface.co/docs/hub/main/en/jobs-pricing
 - **Python SDK**: https://huggingface.co/docs/huggingface_hub/package_reference/jobs
 - **GitHub**: https://github.com/huggingface/hub-docs
+- **Detailed API surface & pricing table**: [references/api-surface-and-pricing-2025.md](references/api-surface-and-pricing-2025.md)
