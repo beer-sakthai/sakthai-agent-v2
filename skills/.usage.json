@@ -56,12 +56,12 @@
     "created_at": "2026-06-21T10:30:48.036725+00:00",
     "created_by": null,
     "last_patched_at": null,
-    "last_used_at": "2026-06-21T20:36:52.940811+00:00",
+    "last_used_at": "2026-06-21T20:48:56.867519+00:00",
     "last_viewed_at": "2026-06-21T11:06:38.730923+00:00",
     "patch_count": 0,
     "pinned": false,
     "state": "active",
-    "use_count": 90,
+    "use_count": 92,
     "view_count": 2
   },
   "dogfood": {
@@ -160,13 +160,13 @@
     "created_at": "2026-06-20T15:56:14.551248+00:00",
     "created_by": null,
     "last_patched_at": "2026-06-21T18:26:01.405732+00:00",
-    "last_used_at": "2026-06-21T20:39:04.277638+00:00",
-    "last_viewed_at": "2026-06-21T20:39:04.246995+00:00",
+    "last_used_at": "2026-06-21T20:52:23.706215+00:00",
+    "last_viewed_at": "2026-06-21T20:52:23.642611+00:00",
     "patch_count": 4,
     "pinned": false,
     "state": "active",
-    "use_count": 76,
-    "view_count": 76
+    "use_count": 78,
+    "view_count": 78
   },
   "kanban-orchestrator": {
     "archived_at": null,
@@ -212,13 +212,13 @@
     "created_at": "2026-06-20T07:15:11.307653+00:00",
     "created_by": "agent",
     "last_patched_at": "2026-06-20T08:44:58.194359+00:00",
-    "last_used_at": "2026-06-21T20:21:53.157361+00:00",
-    "last_viewed_at": "2026-06-21T20:21:53.140953+00:00",
+    "last_used_at": "2026-06-21T20:49:33.464108+00:00",
+    "last_viewed_at": "2026-06-21T20:49:32.625312+00:00",
     "patch_count": 1,
     "pinned": false,
     "state": "active",
-    "use_count": 3,
-    "view_count": 3
+    "use_count": 5,
+    "view_count": 5
   },
   "plg-funnel-economics": {
     "archived_at": null,
@@ -227,6 +227,19 @@
     "last_patched_at": null,
     "last_used_at": "2026-06-21T20:27:11.697691+00:00",
     "last_viewed_at": "2026-06-21T20:27:11.650714+00:00",
+    "patch_count": 0,
+    "pinned": false,
+    "state": "active",
+    "use_count": 1,
+    "view_count": 1
+  },
+  "saas-deal-desk-discount-governance": {
+    "archived_at": null,
+    "created_at": "2026-06-21T20:47:16.387905+00:00",
+    "created_by": null,
+    "last_patched_at": null,
+    "last_used_at": "2026-06-21T20:47:16.490351+00:00",
+    "last_viewed_at": "2026-06-21T20:47:16.388263+00:00",
     "patch_count": 0,
     "pinned": false,
     "state": "active",
