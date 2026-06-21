@@ -14,14 +14,16 @@ Each agent is a Hermes **profile** (its own `HERMES_HOME`), run as a systemd
 container `hermes`) but have distinct `SOUL.md` personas and separate live
 sessions. Owner Telegram user id: `8618306046`.
 
-> Profile *names* are historical and do **not** match identities (identities were
-> swapped). Identity is whatever each profile's `SOUL.md` says. Current mapping:
+> Profile dir names now **match** each agent's identity (renamed 2026-06-21),
+> except **Hermes**, which stays on the reserved `default` profile (`default`
+> cannot be renamed). Identity is whatever each profile's `SOUL.md` says.
+> Current mapping:
 
 | Telegram handle | Bot id | Profile (dir) | Identity | Model | Service |
 |---|---|---|---|---|---|
 | `@sakthai_agent_v2_bot` | 8602426821 | `default` | **Hermes** | Nous free `stepfun/step-3.7-flash:free` | `hermes-gateway.service` |
-| `@saksee_bot` | 8315145484 | `profiles/sakthai` | **Saksee** | Ollama Cloud `gpt-oss:120b` + Nous fallback | `hermes-gateway-sakthai.service` |
-| `@sakthai_v1_bot` | 8773953106 | `profiles/hermesagent` | **SakThai** | Ollama Cloud `gpt-oss:120b` + Nous fallback | `hermes-gateway-hermesagent.service` |
+| `@saksee_bot` | 8315145484 | `profiles/saksee` | **Saksee** | Ollama Cloud `gpt-oss:120b` + Nous fallback | `hermes-gateway-saksee.service` |
+| `@sakthai_v1_bot` | 8773953106 | `profiles/sakthai` | **SakThai** | Ollama Cloud `gpt-oss:120b` + Nous fallback | `hermes-gateway-sakthai.service` |
 
 ## Layout in this repo
 

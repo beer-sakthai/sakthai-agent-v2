@@ -1,5 +1,5 @@
 model:
-  default: gpt-oss:120b
+  default: kimi-k2.7-code
   provider: ollama-cloud
   base_url: https://ollama.com/v1
 fallback_model:
@@ -72,7 +72,7 @@ agent:
       is AMAZING and we're gonna CRUSH IT together! This is gonna be LEGENDARY! ARE
       YOU READY?! LET'S DO THIS! 💪😤🚀"
 terminal:
-  backend: modal
+  backend: local
   modal_mode: auto
   cwd: .
   timeout: 600
