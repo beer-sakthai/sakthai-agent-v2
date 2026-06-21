@@ -133,14 +133,14 @@
     "archived_at": null,
     "created_at": "2026-06-21T16:42:16.113127+00:00",
     "created_by": "agent",
-    "last_patched_at": "2026-06-21T20:05:59.690319+00:00",
-    "last_used_at": "2026-06-21T20:05:47.477079+00:00",
-    "last_viewed_at": "2026-06-21T20:05:46.955177+00:00",
-    "patch_count": 1,
+    "last_patched_at": "2026-06-21T21:54:34.760569+00:00",
+    "last_used_at": "2026-06-21T21:54:10.405322+00:00",
+    "last_viewed_at": "2026-06-21T21:54:10.395771+00:00",
+    "patch_count": 2,
     "pinned": false,
     "state": "active",
-    "use_count": 3,
-    "view_count": 3
+    "use_count": 4,
+    "view_count": 4
   },
   "hf-peft": {
     "archived_at": null,

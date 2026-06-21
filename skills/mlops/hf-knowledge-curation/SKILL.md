@@ -10,10 +10,11 @@ Use this skill when asked to run a learning loop: periodically pick a fresh, spe
 
 ## Workflow
 
-1. **Deduplicate first**
+1. **Deduplicate and validate viability first**
    - List existing skills (`skills_list`, `find .../SKILL.md`) in the target profile.
    - Search Supermemory (`mcp_supermemory_recall query="hf ..."`) for prior sessions on the topic.
    - Do NOT create a skill that already exists.
+   - **Check project health**: Before investing in a full skill, verify the upstream project is actively maintained (check GitHub README/archived status, last commit date, PyPI version recency). If a project is deprecated/archived, capture it as a memory note or add a deprecation subsection to an existing related skill rather than building a full class-level skill around it.
 
 2. **Pick a novel, class-level subtopic**
    - Prefer class-level umbrellas over one-off narrative skills.
