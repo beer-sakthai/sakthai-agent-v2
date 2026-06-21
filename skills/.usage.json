@@ -38,6 +38,19 @@
     "use_count": 1,
     "view_count": 1
   },
+  "board-deck-kpi-narrative-framing": {
+    "archived_at": null,
+    "created_at": "2026-06-21T23:20:41.356261+00:00",
+    "created_by": null,
+    "last_patched_at": null,
+    "last_used_at": "2026-06-21T23:20:41.396663+00:00",
+    "last_viewed_at": "2026-06-21T23:20:41.357090+00:00",
+    "patch_count": 0,
+    "pinned": false,
+    "state": "active",
+    "use_count": 1,
+    "view_count": 1
+  },
   "ccc-operational-levers": {
     "archived_at": null,
     "created_at": "2026-06-21T18:21:28.823770+00:00",
@@ -69,12 +82,12 @@
     "created_at": "2026-06-21T10:30:48.036725+00:00",
     "created_by": null,
     "last_patched_at": null,
-    "last_used_at": "2026-06-21T23:07:12.056977+00:00",
+    "last_used_at": "2026-06-21T23:25:16.300466+00:00",
     "last_viewed_at": "2026-06-21T11:06:38.730923+00:00",
     "patch_count": 0,
     "pinned": false,
     "state": "active",
-    "use_count": 112,
+    "use_count": 115,
     "view_count": 2
   },
   "css-content-visibility": {
@@ -186,13 +199,13 @@
     "created_at": "2026-06-20T15:56:14.551248+00:00",
     "created_by": null,
     "last_patched_at": "2026-06-21T21:58:41.163383+00:00",
-    "last_used_at": "2026-06-21T23:09:06.426205+00:00",
-    "last_viewed_at": "2026-06-21T23:09:06.418049+00:00",
+    "last_used_at": "2026-06-21T23:25:34.328951+00:00",
+    "last_viewed_at": "2026-06-21T23:25:34.320555+00:00",
     "patch_count": 8,
     "pinned": false,
     "state": "active",
-    "use_count": 107,
-    "view_count": 107
+    "use_count": 111,
+    "view_count": 111
   },
   "kanban-orchestrator": {
     "archived_at": null,
@@ -259,6 +272,19 @@
     "use_count": 26,
     "view_count": 26
   },
+  "playwright-html-reports": {
+    "archived_at": null,
+    "created_at": "2026-06-21T23:24:41.838654+00:00",
+    "created_by": null,
+    "last_patched_at": null,
+    "last_used_at": "2026-06-21T23:24:41.849495+00:00",
+    "last_viewed_at": "2026-06-21T23:24:41.838968+00:00",
+    "patch_count": 0,
+    "pinned": false,
+    "state": "active",
+    "use_count": 1,
+    "view_count": 1
+  },
   "playwright-trace-viewer-debugging": {
     "archived_at": null,
     "created_at": "2026-06-21T22:30:28.350339+00:00",
@@ -277,13 +303,13 @@
     "created_at": "2026-06-21T22:45:35.106142+00:00",
     "created_by": null,
     "last_patched_at": null,
-    "last_used_at": "2026-06-21T23:01:45.834003+00:00",
-    "last_viewed_at": "2026-06-21T23:01:45.825908+00:00",
+    "last_used_at": "2026-06-21T23:25:01.582161+00:00",
+    "last_viewed_at": "2026-06-21T23:25:01.570479+00:00",
     "patch_count": 0,
     "pinned": false,
     "state": "active",
-    "use_count": 3,
-    "view_count": 3
+    "use_count": 4,
+    "view_count": 4
   },
   "plg-funnel-economics": {
     "archived_at": null,
@@ -329,13 +355,13 @@
     "created_at": "2026-06-21T20:47:16.387905+00:00",
     "created_by": null,
     "last_patched_at": null,
-    "last_used_at": "2026-06-21T20:47:16.490351+00:00",
-    "last_viewed_at": "2026-06-21T20:47:16.388263+00:00",
+    "last_used_at": "2026-06-21T23:19:49.873264+00:00",
+    "last_viewed_at": "2026-06-21T23:19:49.859244+00:00",
     "patch_count": 0,
     "pinned": false,
     "state": "active",
-    "use_count": 1,
-    "view_count": 1
+    "use_count": 2,
+    "view_count": 2
   },
   "saas-deferred-revenue-and-billing-mix-optimization": {
     "archived_at": null,
