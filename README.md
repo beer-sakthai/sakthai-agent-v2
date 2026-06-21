@@ -30,6 +30,9 @@ sessions. Owner Telegram user id: `8618306046`.
 ```
 default/{SOUL.md,config.yaml}              → ~/.hermes/{SOUL.md,config.yaml}
 profiles/<name>/{SOUL.md,config.yaml}      → ~/.hermes/profiles/<name>/...
+profiles/<name>/cron/jobs.json             → ~/.hermes/profiles/<name>/cron/jobs.json
+                                             (scheduled-job DEFINITIONS only; runtime
+                                              state + delivery origin stripped)
 shared/agents-roster.md                    → ~/.hermes/shared/agents-roster.md
                                              (symlinked as AGENTS.md into each profile)
 systemd/*.service                          → ~/.config/systemd/user/*.service
@@ -46,6 +49,10 @@ env-templates/.env.example                 → fill values → ~/.hermes[/profil
 4. In each profile, symlink the roster as context:
    `ln -s ../../shared/agents-roster.md ~/.hermes/profiles/<name>/AGENTS.md`
 5. `systemctl --user enable --now hermes-gateway*.service`.
+6. (Optional) Restore scheduled jobs: copy `profiles/<name>/cron/jobs.json` into
+   `~/.hermes/profiles/<name>/cron/`. These are definitions only — Hermes
+   regenerates runtime state and re-binds delivery `origin` on first fire. Verify
+   with `hermes --profile <name> cron list`.
 
 ## Hardening notes (already baked into the configs here)
 
