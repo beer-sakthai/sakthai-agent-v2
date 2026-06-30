@@ -163,7 +163,9 @@ class TestSyncMemoryViaHttp:
         with patch("urllib.request.urlopen", return_value=_http_response(200)):
             result = sync_memory_via_http(url)
         assert result == f"Synced to HTTP endpoint: {url}"
-        parsed = urlparse(url)
+        # Extract the URL from the result message to verify it parses correctly
+        url_part = result.split(": ", 1)[1]
+        parsed = urlparse(url_part)
         assert parsed.hostname == "secure.example.com"
 
 
