@@ -121,6 +121,7 @@ class TestReassembleSkill:
         assert reparsed["body"] == body
         assert reparsed["frontmatter"] == frontmatter
 
+
 class TestFindSkill:
     def test_returns_none_if_no_path(self) -> None:
         assert find_skill("test-skill", None) is None
@@ -164,6 +165,7 @@ class TestFindSkill:
         skills_dir.mkdir()
         assert find_skill("non-existent", tmp_path) is None
 
+
 class TestSkillModule:
     def test_initialization(self) -> None:
         skill_text = "Instructions for the task."
@@ -182,6 +184,7 @@ class TestSkillModule:
 
         # DSPy predictors are callable. We can patch the predictor instance.
         from unittest.mock import MagicMock
+
         mock_response = MagicMock()
         mock_response.output = dummy_output
         module.predictor = MagicMock(return_value=mock_response)
