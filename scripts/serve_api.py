@@ -24,6 +24,17 @@ _HOST = "127.0.0.1"
 _PORT = 3002
 
 
+def _safe_web_path(request_path: str) -> Path | None:
+    raw = unquote(request_path or "/")
+    rel = raw.lstrip("/\\")
+    candidate = (WEB_DIR / rel).resolve()
+    try:
+        candidate.relative_to(WEB_DIR)
+    except ValueError:
+        return None
+    return candidate
+
+
 def _dashboard_data(days: int = 30) -> dict[str, Any]:
     try:
         import sys
@@ -93,16 +104,8 @@ class _Handler(SimpleHTTPRequestHandler):
             return
 
         # Serve static files from web/
-        req_path = unquote(parsed.path)
-        normalized = os.path.normpath(req_path).lstrip("/\\")
-        rel = Path(normalized)
-        if rel.is_absolute() or rel.drive or ".." in rel.parts:
-            self.send_error(403, "Forbidden")
-            return
-        safe = (WEB_DIR / rel).resolve()
-        try:
-            safe.relative_to(WEB_DIR)
-        except ValueError:
+        safe = _safe_web_path(parsed.path)
+        if safe is None:
             self.send_error(403, "Forbidden")
             return
 
