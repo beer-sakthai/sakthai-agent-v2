@@ -159,6 +159,7 @@ class TestSyncMemoryViaHttp:
             sync_memory_via_http("http://example.com/sync")
 
     def test_https_url_accepted(self, sakthai_home: Path) -> None:
+        url = "https://secure.example.com/sync"
         with patch("urllib.request.urlopen", return_value=_http_response(200)):
             result = sync_memory_via_http("https://secure.example.com/sync")
         assert result == "Synced to HTTP endpoint: https://secure.example.com/sync"
