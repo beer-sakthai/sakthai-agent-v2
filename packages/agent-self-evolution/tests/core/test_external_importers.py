@@ -20,6 +20,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from click.testing import CliRunner
+from typing import Any, Generator
 from evolution.core.dataset_builder import EvalExample
 from evolution.core.external_importers import (
     MIN_DATASET_SIZE,
@@ -653,7 +654,7 @@ class TestRelevanceFilter:
     """Test RelevanceFilter with mocked LLM calls."""
 
     @pytest.fixture
-    def mock_dspy(self):
+    def mock_dspy(self) -> Generator[MagicMock, None, None]:
         """Mock dspy.LM and dspy.context to avoid real LLM calls."""
         with patch("evolution.core.external_importers.dspy") as mock:
             # Make dspy.context a no-op context manager
@@ -1140,7 +1141,7 @@ class TestValidationIntegration:
     """Verify validation is wired correctly into RelevanceFilter."""
 
     @pytest.fixture
-    def mock_dspy(self):
+    def mock_dspy(self) -> Generator[MagicMock, None, None]:
         with patch("evolution.core.external_importers.dspy") as mock:
             mock.context.return_value.__enter__ = MagicMock(return_value=None)
             mock.context.return_value.__exit__ = MagicMock(return_value=False)
@@ -1223,6 +1224,148 @@ class TestValidationIntegration:
         assert len(examples) == 0
         # scorer should never be called for invalid messages
         rf.scorer.assert_not_called()
+
+
+class TestFilterAndScoreDetail:
+    """Detailed tests for RelevanceFilter.filter_and_score logic branches."""
+
+    @pytest.fixture
+    def mock_dspy(self) -> Generator[MagicMock, None, None]:
+        with patch("evolution.core.external_importers.dspy") as mock:
+            mock.context.return_value.__enter__ = MagicMock(return_value=None)
+            mock.context.return_value.__exit__ = MagicMock(return_value=False)
+            mock.LM = MagicMock()
+            yield mock
+
+    def test_stage0_drops_invalid_messages(self, mock_dspy: MagicMock) -> None:
+        """Messages missing 'task_input' or 'source' are excluded at Stage 0."""
+        rf = RelevanceFilter("test-model")
+        rf.scorer = MagicMock()
+
+        messages = [
+            {"task_input": "valid", "source": "src"},
+            {"task_input": "missing source"},
+            {"source": "missing task_input"},
+            {},
+        ]
+        # Mock heuristic to return True for everything
+        with patch("evolution.core.external_importers._is_relevant_to_skill", return_value=True):
+            rf.filter_and_score(messages, "skill", "text", max_examples=10)
+
+        # Scorer should only be called for the valid message
+        assert rf.scorer.call_count == 1
+        call_args = rf.scorer.call_args[1]
+        assert call_args["user_message"] == "valid"
+
+    def test_stage1_heuristic_and_sampling(self, mock_dspy: MagicMock) -> None:
+        """Candidates include heuristic matches and sampled messages if matches are few."""
+        rf = RelevanceFilter("test-model")
+        rf.scorer = MagicMock()
+        rf.scorer.return_value = SimpleNamespace(scoring='{"relevant": false}')
+
+        # 5 messages, only 1 matches heuristic
+        messages = [{"task_input": f"msg{i}", "source": "src"} for i in range(10)]
+
+        def mock_heuristic(text: str, name: str, skill_text: str) -> bool:
+            return text == "msg0"
+
+        with patch(
+            "evolution.core.external_importers._is_relevant_to_skill", side_effect=mock_heuristic
+        ):
+            # max_examples=5, so it needs more than 1 heuristic match
+            rf.filter_and_score(messages, "skill", "text", max_examples=5)
+
+        # Stage 1 should have 1 heuristic match + sampled ones.
+        # total candidates capped at 3 * max_examples = 15.
+        # Here we have 10 valid messages total.
+        # rf.scorer should be called for some messages beyond msg0.
+        assert rf.scorer.call_count > 1
+        # Check if msg0 was definitely called
+        called_inputs = [args[1]["user_message"] for args in rf.scorer.call_args_list]
+        assert "msg0" in called_inputs
+
+    def test_candidate_capping(self, mock_dspy: MagicMock) -> None:
+        """The number of candidates passed to LLM is capped at 3 * max_examples."""
+        rf = RelevanceFilter("test-model")
+        rf.scorer = MagicMock()
+        rf.scorer.return_value = SimpleNamespace(scoring='{"relevant": false}')
+
+        max_examples = 2
+        # 10 messages, all match heuristic
+        messages = [{"task_input": f"msg{i}", "source": "src"} for i in range(10)]
+
+        with patch("evolution.core.external_importers._is_relevant_to_skill", return_value=True):
+            rf.filter_and_score(messages, "skill", "text", max_examples=max_examples)
+
+        # 3 * 2 = 6 candidates max
+        assert rf.scorer.call_count == 6
+
+    def test_llm_scoring_stop_at_max_examples(self, mock_dspy: MagicMock) -> None:
+        """Scoring loop terminates once max_examples examples are found."""
+        rf = RelevanceFilter("test-model")
+        rf.scorer = MagicMock()
+        rf.scorer.return_value = SimpleNamespace(
+            scoring='{"relevant": true, "expected_behavior": "ok", "difficulty": "easy", "category": "test"}'
+        )
+
+        max_examples = 3
+        messages = [{"task_input": f"msg{i}", "source": "src"} for i in range(10)]
+
+        with patch("evolution.core.external_importers._is_relevant_to_skill", return_value=True):
+            examples = rf.filter_and_score(messages, "skill", "text", max_examples=max_examples)
+
+        assert len(examples) == 3
+        # Should stop after finding 3, even if more candidates exist
+        assert rf.scorer.call_count == 3
+
+    def test_llm_scoring_error_handling(self, mock_dspy: MagicMock) -> None:
+        """Gracefully handles LLM exceptions and JSON parsing failures."""
+        rf = RelevanceFilter("test-model")
+        rf.scorer = MagicMock()
+        # 1st call: Exception
+        # 2nd call: Invalid JSON
+        # 3rd call: Valid
+        # 4th and 5th call: more exceptions (to satisfy all candidates)
+        rf.scorer.side_effect = [
+            Exception("LLM down"),
+            SimpleNamespace(scoring="invalid json"),
+            SimpleNamespace(
+                scoring='{"relevant": true, "expected_behavior": "ok", "difficulty": "easy", "category": "test"}'
+            ),
+            Exception("exhausted"),
+            Exception("exhausted"),
+        ]
+
+        messages = [{"task_input": f"msg{i}", "source": "src"} for i in range(5)]
+
+        with patch("evolution.core.external_importers._is_relevant_to_skill", return_value=True):
+            examples = rf.filter_and_score(messages, "skill", "text", max_examples=5)
+
+        assert len(examples) == 1
+        # It should process all 5 candidates because we never reached max_examples=5
+        assert rf.scorer.call_count == 5
+
+    def test_llm_scoring_relevance_filtering(self, mock_dspy: MagicMock) -> None:
+        """Only messages marked as relevant by the LLM are included."""
+        rf = RelevanceFilter("test-model")
+        rf.scorer = MagicMock()
+        rf.scorer.side_effect = [
+            SimpleNamespace(scoring='{"relevant": false}'),
+            SimpleNamespace(
+                scoring='{"relevant": true, "expected_behavior": "ok", "difficulty": "easy", "category": "test"}'
+            ),
+        ]
+
+        messages = [
+            {"task_input": "irrelevant", "source": "src"},
+            {"task_input": "relevant", "source": "src"},
+        ]
+
+        with patch("evolution.core.external_importers._is_relevant_to_skill", return_value=True):
+            examples = rf.filter_and_score(messages, "skill", "text", max_examples=5)
+
+        assert len(examples) == 1
+        assert examples[0].task_input == "relevant"
 
 
 class TestMinDatasetSizeWarning:
