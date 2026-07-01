@@ -509,7 +509,7 @@ class TestSensitiveKeyDetection:
         assert _is_sensitive_key(key) is False
 
 
-class TestRedactSensitiveText:
+class TestRedactSensitiveTextEmitJsonAndLog:
     def test_redacts_env_var_assignment(self):
         out = _redact_sensitive_text("COMFY_CLOUD_API_KEY=supersecretvalue")
         assert "supersecretvalue" not in out
