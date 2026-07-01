@@ -92,7 +92,12 @@ def drive_mcp(env: dict[str, str]) -> dict[int, dict]:
 def main() -> int:
     home = Path(tempfile.mkdtemp(prefix="sakthai-smoke."))
     env = {**os.environ, "SAKTHAI_HOME": str(home)}
-    if not env.get("ANTHROPIC_API_KEY") and not env.get("ANTHROPIC_AUTH_TOKEN"):
+    claude_dir = Path(env.get("CLAUDE_CONFIG_DIR", str(Path.home() / ".claude")))
+    if (
+        not env.get("ANTHROPIC_API_KEY")
+        and not env.get("ANTHROPIC_AUTH_TOKEN")
+        and not (claude_dir / ".credentials.json").is_file()
+    ):
         env["ANTHROPIC_API_KEY"] = "sk-ant-smoke-dry-run-placeholder"
     print(f"sakthai-agent-v2 smoke · SAKTHAI_HOME={home}\n")
 
