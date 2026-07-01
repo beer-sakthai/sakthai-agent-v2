@@ -199,8 +199,11 @@ def test_call_gemini_non_dict_schema_passed_through() -> None:
     client.models.generate_content.return_value = _gemini_resp([_candidate(text="ok")])
     with patch("sakthai.agent.providers.gemini_provider.to_gemini_contents", return_value=[]):
         resp = call_gemini(client, "gemini-2.0-flash", "sys", (no_schema_tool,), [], 0)
-    assert resp.stop_reason == "end_turn"
 
+    assert resp.stop_reason == "end_turn"
+    _, kwargs = client.models.generate_content.call_args
+    decl = kwargs["config"].tools[0].function_declarations[0]
+    assert decl.parameters is None
 
 def test_call_gemini_max_tokens_finish_reason() -> None:
     client = MagicMock()
