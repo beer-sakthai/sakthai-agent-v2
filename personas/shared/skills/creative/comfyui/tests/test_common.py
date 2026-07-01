@@ -514,6 +514,15 @@ class TestRedactSensitiveText:
         assert "sk-123456" not in result
         assert "REDACTED" in result
 
+    def test_preserves_quotes_and_separator_in_json_text(self):
+        # Regression: the redaction used to strip the surrounding quotes and
+        # force `=` as the separator, turning `{"api_key": "sk-..."}` into the
+        # malformed `{"api_key=***REDACTED***"}`. Quotes and the original
+        # separator must be preserved so the text stays well-formed.
+        result = _redact_sensitive_text('{"api_key": "sk-123456"}')
+        assert result == '{"api_key":"***REDACTED***"}'
+        assert result.count('"') == 4
+
     def test_redacts_authorization_bearer_in_repr(self):
         # Regression: a repr'd headers dict (quotes around the header name)
         # previously wasn't matched, and the bearer token leaked outside the
@@ -523,6 +532,10 @@ class TestRedactSensitiveText:
         )
         assert "sk-abcdef123456" not in result
         assert "REDACTED" in result
+        # Quotes must stay balanced (the value's opening quote is reinserted
+        # after "Bearer ", and its matching closing quote after the redacted
+        # placeholder), not left dangling as in the pre-fix version.
+        assert result.count("'") == 4
 
     def test_redacts_bare_bearer_token(self):
         # Regression: "Bearer <token>" with no preceding "Authorization:" label.

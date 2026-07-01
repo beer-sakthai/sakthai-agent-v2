@@ -843,20 +843,26 @@ _TEXT_SECRET_MARKERS = tuple(
 # `(?<![A-Za-z0-9])` / `(?![A-Za-z0-9])` (rather than `\b`) so the marker still
 # matches when it's joined to a prefix by `_`/`-` (e.g. MY_API_KEY, access-token),
 # since `_` counts as a word character and `\b` would not break there.
-# The optional quotes handle markers embedded in raw JSON text (e.g. a captured
-# HTTP response body containing `"api_key": "..."`), where a quote sits between
-# the key and its separator.
+#
+# Groups: (1) marker, (2) quote right after the marker — the JSON-style
+# closing quote of a quoted key, or "" if unquoted — (3) separator (":" or
+# "="), (4) quote opening the value (or ""). The matching closing quote is
+# consumed via a same-group backreference (`(?(4)\4|)`) rather than captured
+# again, so the replacement can reinsert exactly the quotes/separator that
+# were present in the input instead of always forcing `=` and dropping
+# quotes — which would otherwise turn `{"api_key": "sk-..."}` into the
+# malformed `{"api_key=***REDACTED***"}`.
 _KV_RE = re.compile(
     rf"(?i)(?<![A-Za-z0-9])({'|'.join(m.replace('_', '[_-]?') for m in _TEXT_SECRET_MARKERS)})"
-    rf"(?![A-Za-z0-9])[\"']?\s*[:=]\s*[\"']?([^\s,;\"'}}]+)"
+    rf"(?![A-Za-z0-9])(\"|')?\s*([:=])\s*(\"|')?[^\s,;\"'}}]+(?(4)\4|)"
 )
 _AUTH_RE = re.compile(
     r"(?i)(?<![A-Za-z0-9])(authorization)(?![A-Za-z0-9])"
-    r"[\"']?\s*[:=]\s*[\"']?(bearer\s+)?[\"']?([^\s,;\"'}]+)"
+    r"(\"|')?\s*([:=])\s*(\"|')?(bearer\s+)?[^\s,;\"'}]+(?(4)\4|)"
 )
 # Bare "Bearer <token>" with no preceding "Authorization:" label.
 _BEARER_RE = re.compile(
-    r"(?i)(?<![A-Za-z0-9])(bearer)(?![A-Za-z0-9])\s+[\"']?([^\s,;\"'}]+)"
+    r"(?i)(?<![A-Za-z0-9])(bearer)(?![A-Za-z0-9])\s+(\"|')?[^\s,;\"'}]+(?(2)\2|)"
 )
 
 
@@ -872,9 +878,9 @@ def _is_sensitive_key(key: Any) -> bool:
 def _redact_sensitive_text(text: str) -> str:
     # Authorization/bearer first (more specific — captures the bearer prefix
     # correctly), then the generic key=value scan.
-    redacted = _AUTH_RE.sub(rf"\1: \2{_REDACTED}", text)
-    redacted = _BEARER_RE.sub(rf"\1 {_REDACTED}", redacted)
-    redacted = _KV_RE.sub(rf"\1={_REDACTED}", redacted)
+    redacted = _AUTH_RE.sub(rf"\1\2\3\4\5{_REDACTED}\4", text)
+    redacted = _BEARER_RE.sub(rf"\1 \2{_REDACTED}\2", redacted)
+    redacted = _KV_RE.sub(rf"\1\2\3\4{_REDACTED}\4", redacted)
     return redacted
 
 
