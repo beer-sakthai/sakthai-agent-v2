@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
@@ -10,6 +10,8 @@ const LIVE_DATA = {
   generated_at: '2026-07-01',
   kpis: { ...DEMO_DATA.kpis, total_facts: 999 },
 }
+
+const originalFetch = global.fetch
 
 function mockFetchOnce(response) {
   global.fetch = vi.fn().mockResolvedValue({
@@ -25,6 +27,7 @@ function mockFetchFailure() {
 describe('App', () => {
   afterEach(() => {
     vi.restoreAllMocks()
+    global.fetch = originalFetch
   })
 
   it('falls back to demo data and shows "Demo Mode" when data.json is unreachable', async () => {

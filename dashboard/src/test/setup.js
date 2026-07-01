@@ -1,9 +1,11 @@
 import '@testing-library/jest-dom/vitest'
 
 // recharts' ResponsiveContainer needs a ResizeObserver, which jsdom doesn't implement.
-class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
+if (!globalThis.ResizeObserver) {
+  class ResizeObserverStub {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  globalThis.ResizeObserver = ResizeObserverStub
 }
-global.ResizeObserver = ResizeObserverStub
