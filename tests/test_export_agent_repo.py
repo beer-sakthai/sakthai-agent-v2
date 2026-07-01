@@ -108,8 +108,18 @@ def test_export_creates_persona_specific_repo(
     assert out == tmp_path / "out"
     assert (out / "README.md").read_text(encoding="utf-8").startswith("# SakJules Repository")
     assert "personas/shared/skills/" in (out / "README.md").read_text(encoding="utf-8")
+    assert "USER.md" in (out / "README.md").read_text(encoding="utf-8")
+    assert "Dream, Hope, Care, Joy, Trust, and Growth" in (out / "README.md").read_text(
+        encoding="utf-8"
+    )
     assert "beer-sakthai/sakjules-agent" in (out / "README.md").read_text(encoding="utf-8")
     assert "beer-sakthai/Sak-Family-Agent" in (out / "README.md").read_text(encoding="utf-8")
+    user_md = (out / "USER.md").read_text(encoding="utf-8")
+    assert "Nanthasit Burankum" in user_md
+    assert "Beer" in user_md
+    assert "April 15, 2026" in user_md
+    assert "Dream, Hope, Care, Joy, Trust, and Growth" in user_md
+    assert "supportive companions" in user_md
     assert (out / "SOUL.md").read_text(encoding="utf-8") == "SakJules soul"
     assert "standalone" in (out / "AGENTS.md").read_text(encoding="utf-8")
     assert "beer-sakthai/sakjules-agent" in (out / "AGENTS.md").read_text(encoding="utf-8")

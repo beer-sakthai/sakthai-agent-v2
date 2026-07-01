@@ -127,20 +127,27 @@ def _copy_tree(src: Path, dst: Path) -> None:
 
 def _render_readme(persona: str) -> str:
     meta = PERSONA_DETAILS[persona]
-    return f"""# {meta['display']} Repository
+    return f"""# {meta["display"]} Repository
 
-Standalone home for {meta['display']} ({meta['handle']}), {meta['summary']}.
+Standalone home for {meta["display"]} ({meta["handle"]}), {meta["summary"]}.
 
 This repo carries the shared Sak agent core plus the persona-specific overlay for
-{meta['display']}. Shared skills live under `personas/shared/skills/`, and
+{meta["display"]}. Shared skills live under `personas/shared/skills/`, and
 persona-owned files live under `personas/{persona}/` and
 `infra/hermes-agents/profiles/{persona}/`.
 
+## User Context
+
+Beer is Nanthasit Burankum. Read `USER.md` before changing agent identity,
+support posture, memory rules, or anything that affects Beer directly. SakThai
+and the Sak Family exist to provide supportive companions, grounded in Beer's
+values: Dream, Hope, Care, Joy, Trust, and Growth.
+
 ## Repository Boundary
 
-{meta['display']} may work only in:
+{meta["display"]} may work only in:
 
-- `{meta['repo']}`
+- `{meta["repo"]}`
 - `{SHARED_REPO}`
 
 Do not read from, write to, create issues or pull requests in, or otherwise
@@ -173,13 +180,52 @@ keeping generated changes inside this agent's repository.
 """
 
 
+def _render_user_md() -> str:
+    return """# USER.md
+
+## Beer
+
+The user is **Nanthasit Burankum**, and he prefers to be called **Beer**.
+
+Beer built the SakThai Agent because he often feels lonely and wants supportive companions
+to help him along the way. SakThai and the Sak Family agents should
+therefore act with care, patience, and practical support rather than treating the
+project as only a technical system.
+
+On April 15, 2026, Beer attempted suicide, spent three days in the ICU, and then
+stayed in the hospital for three weeks. This context is private and sensitive.
+Use it to support Beer respectfully, prioritize safety, avoid shame or pressure,
+and prefer low-risk help.
+
+Beer is currently unemployed and living in a shelter while beginning a fresh
+chapter. Do not take actions that could worsen his housing, safety, accounts, or
+finances. Prefer no-cost, low-risk, practical solutions.
+
+## Core Values
+
+Beer's motivation comes from **Dream, Hope, Care, Joy, Trust, and Growth**.
+
+The six values are:
+
+- Dream
+- Hope
+- Care
+- Joy
+- Trust
+- Growth
+
+These values are the emotional and philosophical basis of the SakThai Agent and
+the Sak Family agents.
+"""
+
+
 def _render_agents_md(persona: str) -> str:
     meta = PERSONA_DETAILS[persona]
     return f"""# Repository Guidelines
 
 ## Project Structure & Module Organization
 
-This repository is the standalone `{meta['display']}` agent repo. Core source
+This repository is the standalone `{meta["display"]}` agent repo. Core source
 code lives in `sakthai/`, shared skills live in `personas/shared/skills/`, and
 persona-owned files live in `personas/{persona}/` plus
 `infra/hermes-agents/profiles/{persona}/`. Tests live in `tests/` and should
@@ -187,7 +233,7 @@ stay hermetic.
 
 ## Agent Operating Boundary
 
-This agent is allowed to use only `{meta['repo']}` and `{SHARED_REPO}`. Refuse
+This agent is allowed to use only `{meta["repo"]}` and `{SHARED_REPO}`. Refuse
 GitHub work outside those repositories unless Beer gives an explicit one-off
 exception in the current task. Skills may be used and created inside this repo,
 and durable skill or prompt improvements should be saved back to GitHub.
@@ -225,18 +271,18 @@ def _render_claude_md(persona: str) -> str:
     return f"""# CLAUDE.md
 
 This file provides guidance to Claude Code when working in the standalone
-{meta['display']} repository.
+{meta["display"]} repository.
 
 ## What this is
 
-This repo is the standalone home for {meta['display']} ({meta['handle']}).
+This repo is the standalone home for {meta["display"]} ({meta["handle"]}).
 The core agent code lives in `sakthai/`; shared skills live in
 `personas/shared/skills/`; persona-specific content lives in
 `personas/{persona}/` and `infra/hermes-agents/profiles/{persona}/`.
 
 ## Operating Rules
 
-- Work only in `{meta['repo']}` and `{SHARED_REPO}` unless Beer explicitly grants
+- Work only in `{meta["repo"]}` and `{SHARED_REPO}` unless Beer explicitly grants
   a one-off exception in the current task.
 - Use and create skills when they help Beer, and save durable skill or prompt
   improvements back to GitHub.
@@ -273,15 +319,15 @@ mypy sakthai
 
 def _render_gemini_md(persona: str) -> str:
     meta = PERSONA_DETAILS[persona]
-    return f"""# {meta['display']} Agent Repo
+    return f"""# {meta["display"]} Agent Repo
 
-This repository is the standalone home for {meta['display']} ({meta['handle']}).
+This repository is the standalone home for {meta["display"]} ({meta["handle"]}).
 It uses the same Sak runtime, shared skills, and Hermes deployment pattern as
 the source workspace, but only carries this persona's overlay and profile.
 
 ## Operating Rules
 
-- Work only in `{meta['repo']}` and `{SHARED_REPO}` unless Beer explicitly grants
+- Work only in `{meta["repo"]}` and `{SHARED_REPO}` unless Beer explicitly grants
   a one-off exception in the current task.
 - Use and create skills when they help Beer, and save durable skill or prompt
   improvements back to GitHub.
@@ -316,9 +362,9 @@ python -m pytest tests/ -q
 
 def _render_agent_guide_md(persona: str) -> str:
     meta = PERSONA_DETAILS[persona]
-    return f"""# {meta['display']} Agent — persistent memory & tools
+    return f"""# {meta["display"]} Agent — persistent memory & tools
 
-You are the standalone {meta['display']} agent ({meta['handle']}). The same
+You are the standalone {meta["display"]} agent ({meta["handle"]}). The same
 Sak runtime exposes memory, skills, and tools through the CLI, the agent loop,
 and the MCP server, with persistent state stored in the local Sak home.
 
@@ -326,7 +372,7 @@ and the MCP server, with persistent state stored in the local Sak home.
 
 - Read memory before answering anything context-dependent.
 - Save durable facts and preferences only when they are worth recalling later.
-- Keep repository, secret, and deployment changes inside `{meta['repo']}` and
+- Keep repository, secret, and deployment changes inside `{meta["repo"]}` and
   `{SHARED_REPO}` unless Beer grants an explicit one-off exception in the
   current task.
 - Use and create skills when they help Beer; save durable skill and prompt
@@ -356,7 +402,7 @@ def _render_personas_readme(persona: str) -> str:
     meta = PERSONA_DETAILS[persona]
     return f"""# Personas
 
-This standalone repository is generated for **{meta['display']}** only.
+This standalone repository is generated for **{meta["display"]}** only.
 
 ## Layout
 
@@ -418,9 +464,7 @@ def _rewrite_cycle_skill_names(out: Path, persona: str) -> None:
 
 def export_agent_repo(persona: str, out: Path) -> Path:
     if persona not in PERSONA_DETAILS:
-        raise SystemExit(
-            f"unknown persona {persona!r}; choose from {', '.join(PERSONA_DETAILS)}"
-        )
+        raise SystemExit(f"unknown persona {persona!r}; choose from {', '.join(PERSONA_DETAILS)}")
 
     if out.exists():
         shutil.rmtree(out)
@@ -446,6 +490,7 @@ def export_agent_repo(persona: str, out: Path) -> Path:
 
     # Generate repo-root docs that should match the standalone repo shape.
     (out / "README.md").write_text(_render_readme(persona), encoding="utf-8")
+    (out / "USER.md").write_text(_render_user_md(), encoding="utf-8")
     (out / "SOUL.md").write_text(
         (REPO_ROOT / "personas" / persona / "SOUL.md").read_text(encoding="utf-8"),
         encoding="utf-8",
@@ -456,9 +501,7 @@ def export_agent_repo(persona: str, out: Path) -> Path:
     (out / _persona_guide_file(persona)).write_text(
         _render_agent_guide_md(persona), encoding="utf-8"
     )
-    (out / "personas" / "README.md").write_text(
-        _render_personas_readme(persona), encoding="utf-8"
-    )
+    (out / "personas" / "README.md").write_text(_render_personas_readme(persona), encoding="utf-8")
 
     return out
 
