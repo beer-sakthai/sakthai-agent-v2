@@ -318,6 +318,42 @@ class MemoryStore:
         self._conn.commit()
         return cast(int, cur.lastrowid)
 
+    def add_facts(self, facts: Iterable[dict[str, Any]]) -> list[int]:
+        """Store multiple facts in a single transaction.
+
+        Each dict in ``facts`` can contain: "value" (required), "kind", "key",
+        "source_session", "tags". Returns the list of new IDs.
+        """
+        now = _now()
+        ids: list[int] = []
+        try:
+            # BEGIN IMMEDIATE ensures we have the write lock and prevents
+            # deadlocks if another connection is already reading.
+            self._conn.execute("BEGIN IMMEDIATE")
+            for f in facts:
+                value = f.get("value")
+                if not value or not value.strip():
+                    continue
+                cur = self._conn.execute(
+                    "INSERT INTO facts (kind, key, value, source_session, created_at, "
+                    "updated_at, tags) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        f.get("kind", "note"),
+                        f.get("key"),
+                        value.strip(),
+                        f.get("source_session"),
+                        now,
+                        now,
+                        _encode_tags(f.get("tags")),
+                    ),
+                )
+                ids.append(cast(int, cur.lastrowid))
+            self._conn.commit()
+            return ids
+        except Exception:
+            self._conn.rollback()
+            raise
+
     def list_facts(
         self,
         limit: int = 100,

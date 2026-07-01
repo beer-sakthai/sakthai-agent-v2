@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import click
 
@@ -57,22 +57,24 @@ def learn(
         click.echo(f"learned (id={fact_id})")
         return
 
-    learned: list[int] = []
+    pending: list[dict[str, Any]] = []
+    for raw in file.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith(("- ", "* ", "+ ")):
+            line = line[2:].strip()
+        elif (
+            "." in line
+            and line.split(".", 1)[0].isdigit()
+            and line.split(".", 1)[1].startswith(" ")
+        ):
+            line = line.split(".", 1)[1].strip()
+        if line:
+            pending.append({"value": line, "kind": kind, "key": key, "tags": tag_list})
+
     with MemoryStore() as store:
-        for raw in file.read_text(encoding="utf-8").splitlines():
-            line = raw.strip()
-            if not line or line.startswith("#"):
-                continue
-            if line.startswith(("- ", "* ", "+ ")):
-                line = line[2:].strip()
-            elif (
-                "." in line
-                and line.split(".", 1)[0].isdigit()
-                and line.split(".", 1)[1].startswith(" ")
-            ):
-                line = line.split(".", 1)[1].strip()
-            if line:
-                learned.append(store.add_fact(line, kind=kind, key=key, tags=tag_list))
+        learned = store.add_facts(pending)
     if not learned:
         click.echo("No valid facts found in file.")
         return
@@ -334,39 +336,42 @@ def memory_consolidate_sessions(limit: int, model: str | None) -> None:
 
     click.echo(f"Consolidating {len(pending)} session(s)...")
     extraction_model = model or DEFAULT_MODEL
+
+    to_learn: list[dict[str, Any]] = []
+    for f in pending:
+        try:
+            data = json.loads(f.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            click.echo(f"Skipping unreadable session log {f.name}: {exc}")
+            continue
+
+        task = data.get("task", "")
+        result_text = (data.get("result") or {}).get("text", "")
+        trace = f"User: {task}\nAgent: {result_text}"
+
+        try:
+            res = run_agent(
+                _CONSOLIDATE_PROMPT.format(trace=trace),
+                model=extraction_model,
+                max_iterations=1,
+                tools=(),
+            )
+        except Exception as exc:  # noqa: BLE001 - report and continue, never abort the batch
+            click.echo(f"Error extracting from {f.name}: {exc}")
+            continue
+
+        for raw in res.text.strip().splitlines():
+            line = raw.strip().lstrip("-*+ ").strip()
+            if not line or line.lower() == "none" or line.startswith("#"):
+                continue
+            to_learn.append({"value": line, "kind": "consolidated", "tags": ["consolidated"]})
+
+        processed.add(f.name)
+
     learned = 0
-
-    with MemoryStore() as store:
-        for f in pending:
-            try:
-                data = json.loads(f.read_text(encoding="utf-8"))
-            except (OSError, ValueError) as exc:
-                click.echo(f"Skipping unreadable session log {f.name}: {exc}")
-                continue
-
-            task = data.get("task", "")
-            result_text = (data.get("result") or {}).get("text", "")
-            trace = f"User: {task}\nAgent: {result_text}"
-
-            try:
-                res = run_agent(
-                    _CONSOLIDATE_PROMPT.format(trace=trace),
-                    model=extraction_model,
-                    max_iterations=1,
-                    tools=(),
-                )
-            except Exception as exc:  # noqa: BLE001 - report and continue, never abort the batch
-                click.echo(f"Error extracting from {f.name}: {exc}")
-                continue
-
-            for raw in res.text.strip().splitlines():
-                line = raw.strip().lstrip("-*+ ").strip()
-                if not line or line.lower() == "none" or line.startswith("#"):
-                    continue
-                store.add_fact(line, kind="consolidated", tags=["consolidated"])
-                learned += 1
-
-            processed.add(f.name)
+    if to_learn:
+        with MemoryStore() as store:
+            learned = len(store.add_facts(to_learn))
 
     try:
         state_file.write_text(json.dumps(sorted(processed), indent=2), encoding="utf-8")
