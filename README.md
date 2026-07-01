@@ -112,8 +112,10 @@ snapshots** for each persona into `build/agent-repos/<persona>/` with
   `personas/shared/skills/`, with each persona keeping only its unique files. Use
   `scripts/export_agent_repo.py <persona> --out ...` or `make export-agent-repos` when you want
   a standalone repo snapshot. See [`personas/README.md`](./personas/README.md) and the root
-  [`SOUL.md`](./SOUL.md); see [`infra/hermes-agents/README.md`](./infra/hermes-agents/README.md)
-  for full Telegram-bot deployment.
+  [`SOUL.md`](./SOUL.md). Read [`USER.md`](./USER.md) for Beer's identity, support context, and
+  the values behind the agents: Dream, Hope, Care, Joy, Trust, and Growth. See
+  [`infra/hermes-agents/README.md`](./infra/hermes-agents/README.md) for full Telegram-bot
+  deployment.
 - 📦 **`packages/agent-self-evolution`** targets a different runtime (Nous Research's Hermes) with
   a heavy, disjoint dependency set, so it is **not** a uv workspace member — build it on its own
   per its README. The root `uv.lock` stays scoped to the SakThai agent.
