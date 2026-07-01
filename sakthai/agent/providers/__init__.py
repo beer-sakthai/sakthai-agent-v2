@@ -68,7 +68,16 @@ def detect_provider(client: Any | None, model: str) -> str:
         return "openai"
     if any(
         keyword in model.lower()
-        for keyword in ("openai", "ollama", "gpt-", "qwen", "llama", "deepseek", "mistral", "gemma")
+        for keyword in (
+            "openai",
+            "ollama",
+            "gpt-",
+            "qwen",
+            "llama",
+            "deepseek",
+            "mistral",
+            "gemma",
+        )
     ):
         return "openai"
     if client is not None:
@@ -114,7 +123,9 @@ def build_client(provider: str, client: Any | None) -> Any:
             try:
                 return genai.Client(api_key=api_key)
             except Exception as exc:
-                raise AgentError(f"Failed to initialize Google Gemini client: {exc}") from exc
+                raise AgentError(
+                    f"Failed to initialize Google Gemini client: {exc}"
+                ) from exc
 
         # Fallback to Gemini CLI OAuth token if no API key is set
         import subprocess
@@ -151,7 +162,10 @@ def build_client(provider: str, client: Any | None) -> Any:
         try:
             credentials = Credentials(token=token)  # type: ignore[no-untyped-call]
             return genai.Client(
-                vertexai=True, project=project, location="us-central1", credentials=credentials
+                vertexai=True,
+                project=project,
+                location="us-central1",
+                credentials=credentials,
             )
         except Exception as exc:
             raise AgentError(
