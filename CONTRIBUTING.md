@@ -31,11 +31,12 @@ diagram and [`CLAUDE.md`](CLAUDE.md) for the architectural ground rules.
 
 Python **>= 3.11** is required (CI runs on 3.11 and 3.12).
 
+This project uses `uv` for dependency management. See `skills/sakthai-coding-uv/SKILL.md` for the full workflow.
+
 ```bash
 cp .env.example .env          # then fill in ANTHROPIC_API_KEY
-pip install -e ".[dev]"       # editable install with the dev toolchain
-pip install -e ".[dashboard]" # optional: streamlit/plotly/pandas for the dashboard
-pip install -e ".[all]"       # dev + dashboard
+uv sync --extra dev           # Install project and development dependencies
+uv sync --all-extras          # Install all optional dependencies
 ```
 
 Verify your environment with `sakthai doctor` and `sakthai setup`.

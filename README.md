@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🧠 House of Sak 
+# 🧠 House of Sak
 
 ![House of Sak](./assets/house_of_sak.png)
 
@@ -26,7 +26,6 @@ One package, three ways in — a CLI, a tool-using agent loop, and an MCP stdio 
 > are reachable from other agents and editors. **Local-first**, with a fully **no-cost** local run.
 
 ---<img width="1280" height="549" alt="image" src="https://github.com/user-attachments/assets/6a58ff16-74cd-47d5-881a-84736e7c994b" />
-
 
 ## 📑 Table of contents
 
@@ -95,10 +94,10 @@ snapshots** for each persona into `build/agent-repos/<persona>/` with
 │   └── {sakking,sakthai,saksee,saksit,saktan}/   # per-persona SOUL.md + config + skill overlay
 │   ├── shared/skills/            # skill library shared by all six personas (deduped, once)
 │   └── {sakking,sakthai,saksee,saksit,saktan,sakjules}/   # per-persona SOUL.md + config + skill overlay
-├── build/agent-repos/<persona>/   # export target for standalone agent repos
 ├── infra/
 │   ├── hermes-agents/            # Hermes Telegram-bot config backup (no secrets)
 │   └── pw-poc/                   # Playwright tab-order/accessibility probe (npm)
+├── build/agent-repos/<persona>/   # export target for standalone agent repos
 └── scripts/compose_persona.py    # rebuild a persona's full skill tree (shared + overlay)
 ```
 
@@ -143,9 +142,9 @@ All runtimes share `~/.sakthai/memory.db` (override the root with `SAKTHAI_HOME`
 
 ---
 
-## 🤝 Family agents
+## 🤝 Family Agents
 
-The repo tracks five personas end to end, each with a distinct role and personality:
+The repo tracks six personas end to end, each with a distinct role and personality. See `SOUL.md` for the full roster.
 
 | Agent | Role | Portrait |
 |---|---|---|
@@ -389,4 +388,4 @@ Comprehensive documentation is available in the `docs/` directory, covering arch
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is **all rights reserved** (© 2026 beer-sakthai). The source is available for reading and learning, but no license to use, copy, modify, or redistribute it is granted. See `CODE_OF_CONDUCT.md` for details.

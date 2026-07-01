@@ -126,8 +126,8 @@ def build_client(provider: str, client: Any | None) -> Any:
         token = load_gemini_cli_token()
         if not token:
             raise AgentError(
-                "Missing credentials for Google Gemini "
-                "(GEMINI_API_KEY or GOOGLE_API_KEY must be set, or run `gemini auth login` to authenticate)."
+                "Missing credentials for Google Gemini. Either set GEMINI_API_KEY / "
+                "GOOGLE_API_KEY, or run `gemini auth login` to authenticate via the CLI."
             )
 
         # Retrieve active gcloud project ID

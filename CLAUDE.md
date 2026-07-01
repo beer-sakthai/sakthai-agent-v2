@@ -43,13 +43,13 @@ persona overlays and can export standalone repo snapshots with
 
 ### Sak Family Agents
 
-The repo also carries the **Sak Family Agents** — four personas with **SakKing**
-as the **main** (Lead & Orchestrator) and **SakThai**, **SakSee**, **SakSit** as
-the family it coordinates. "Hermes" is only the framework they run on, never an
-agent's name. The authoritative per-agent identities are the repo-root
-`SOUL.md` + `personas/<name>/SOUL.md`; `infra/hermes-agents/` carry
-their own (sometimes role-specialized) copies. Keep the SakKing-as-lead framing
-consistent if you touch any of them.
+The repo also carries the **Sak Family Agents** — six personas with **SakKing**
+as the **main** (Lead & Orchestrator) and **SakThai**, **SakSee**, **SakSit**,
+**SakTan**, and **SakJules** as the family it coordinates. "Hermes" is only the
+framework they run on, never an agent's name. The authoritative per-agent
+identities are the repo-root `SOUL.md` + `personas/<name>/SOUL.md`;
+`infra/hermes-agents/` carry their own (sometimes role-specialized) copies.
+Keep the SakKing-as-lead framing consistent if you touch any of them.
 
 CI (`ci.yml`, `pylint.yml`) scopes ruff/mypy/bandit/pytest/pylint to the
 `sakthai` core only; the co-located trees are not held to this repo's bars.
@@ -63,21 +63,17 @@ Everything below this point describes the SakThai agent package itself.
 
 ```bash
 # Setup (Python >=3.11)
-cp .env.example .env            # then fill in ANTHROPIC_API_KEY
-pip install -e ".[dev]"         # editable install + test/lint/type-check tools
-pip install -e ".[all]"         # same as [dev] (dashboard is a pre-built React bundle; no extra Python deps needed)
-
-# Preferred: use uv (CI uses uv with uv.lock for reproducible installs)
-uv sync --all-extras
+cp .env.example .env      # then fill in ANTHROPIC_API_KEY
+uv sync --all-extras      # install all project and optional dependencies
 
 # Test / lint / type-check / security (mirrors .github/workflows/ci.yml)
-python -m pytest tests/ -q                      # full unit suite (no network, no GCP)
-python -m pytest tests/test_memory_store.py -q  # a single test file
-python -m pytest -m "not integration" -q        # exclude network tests (default in CI)
-ruff check sakthai tests                        # lint
-ruff format --check sakthai tests               # format check (drop --check to apply)
-mypy sakthai                                    # strict type-check
-bandit -c pyproject.toml -r sakthai             # security scan
+uv run pytest tests/ -q                      # full unit suite (no network, no GCP)
+uv run pytest tests/test_memory_store.py -q  # a single test file
+uv run pytest -m "not integration" -q        # exclude network tests (default in CI)
+uv run ruff check sakthai tests              # lint
+uv run ruff format --check sakthai tests     # format check (drop --check to apply)
+uv run mypy sakthai                          # strict type-check
+uv run bandit -c pyproject.toml -r sakthai   # security scan
 ```
 
 CI (`.github/workflows/ci.yml`, all via `uv sync --extra dev --locked`) runs:
@@ -187,6 +183,7 @@ CLI/MCP → agent loop → tool registry → MemoryStore → SQLite. See
   discovers external server specs from `~/.sakthai/mcp.json` and extensions.
 
 External MCP server config format (`~/.sakthai/mcp.json`):
+
 ```json
 {
   "servers": [
@@ -198,6 +195,7 @@ External MCP server config format (`~/.sakthai/mcp.json`):
 ### CLI subsystem (`cli/`)
 
 Click commands split by area; all sub-files imported by `cli/__init__.py`:
+
 - `agent.py` — `run`, `mcp`
 - `memory.py` — `learn`, `recall`, `memory` group
 - `system.py` — `doctor`, `setup`, `status`, `tools`
@@ -283,6 +281,7 @@ network, no GCP credentials. Integration tests that may hit real endpoints
 credentials/endpoints are absent; CI excludes them with `-m "not integration"`.
 
 Key test areas:
+
 - `test_memory_store.py`, `test_memory_sync.py`, `test_memory_aux.py`,
   `test_memory_concurrent.py`, `test_store_migrations.py` — memory subsystem
 - `test_agent_loop.py`, `test_tools.py`, `test_registry.py`, `test_usage.py`,

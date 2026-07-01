@@ -41,11 +41,15 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
+          # Cache the uv executable itself.
+          cache: true
           python-version: ${{ matrix.python-version }}
-          enable-cache: true
 
       # --locked fails the build if uv.lock is stale, so CI exercises the same
       # pinned dependency set as local development (the repo is uv-managed).
+      - name: Verify lockfile is up to date
+        run: uv lock --check
+
       - name: Install (locked)
         run: uv sync --extra dev --locked
 
