@@ -861,6 +861,43 @@ _COMFY_TOKEN_RE = re.compile(r"(?i)\bcomfyui-[A-Za-z0-9._-]+\b")
 
 def _key_tokens(key: str) -> list[str]:
     return [t for t in re.split(r"[^a-z0-9]+", key.lower()) if t]
+# Single source of truth for "this looks like a secret" — both the dict-key
+# check and the free-text regex below are built from this one set, so adding
+# a marker here covers both redaction paths instead of silently only one.
+_SENSITIVE_KEY_MARKERS = {
+    "api_key", "apikey", "password", "passwd", "token", "secret",
+    "authorization", "auth", "bearer", "access_key", "private_key",
+}
+
+# authorization/bearer get bearer-prefix-aware handling below, so they're
+# excluded from the generic key=value marker pattern.
+_TEXT_SECRET_MARKERS = tuple(
+    sorted(m for m in _SENSITIVE_KEY_MARKERS if m not in {"authorization", "auth", "bearer"})
+)
+# `(?<![A-Za-z0-9])` / `(?![A-Za-z0-9])` (rather than `\b`) so the marker still
+# matches when it's joined to a prefix by `_`/`-` (e.g. MY_API_KEY, access-token),
+# since `_` counts as a word character and `\b` would not break there.
+#
+# Groups: (1) marker, (2) quote right after the marker — the JSON-style
+# closing quote of a quoted key, or "" if unquoted — (3) separator (":" or
+# "="), (4) quote opening the value (or ""). The matching closing quote is
+# consumed via a same-group backreference (`(?(4)\4|)`) rather than captured
+# again, so the replacement can reinsert exactly the quotes/separator that
+# were present in the input instead of always forcing `=` and dropping
+# quotes — which would otherwise turn `{"api_key": "sk-..."}` into the
+# malformed `{"api_key=***REDACTED***"}`.
+_KV_RE = re.compile(
+    rf"(?i)(?<![A-Za-z0-9])({'|'.join(m.replace('_', '[_-]?') for m in _TEXT_SECRET_MARKERS)})"
+    rf"(?![A-Za-z0-9])(\"|')?\s*([:=])\s*(\"|')?[^\s,;\"'}}]+(?(4)\4|)"
+)
+_AUTH_RE = re.compile(
+    r"(?i)(?<![A-Za-z0-9])(authorization)(?![A-Za-z0-9])"
+    r"(\"|')?\s*([:=])\s*(\"|')?(bearer\s+)?[^\s,;\"'}]+(?(4)\4|)"
+)
+# Bare "Bearer <token>" with no preceding "Authorization:" label.
+_BEARER_RE = re.compile(
+    r"(?i)(?<![A-Za-z0-9])(bearer)(?![A-Za-z0-9])\s+(\"|')?[^\s,;\"'}]+(?(2)\2|)"
+)
 
 
 def _is_sensitive_key(key: Any) -> bool:
@@ -885,6 +922,27 @@ def _redact_secret_kv(m: "re.Match[str]") -> str:
 def _redact_sensitive_text(text: str) -> str:
     redacted = _SECRET_KV_RE.sub(_redact_secret_kv, text)
     redacted = _COMFY_TOKEN_RE.sub(_REDACTED, redacted)
+    # Authorization/bearer first (more specific — captures the bearer prefix
+    # correctly), then the generic key=value scan.
+    redacted = _AUTH_RE.sub(rf"\1\2\3\4\5{_REDACTED}\4", text)
+    redacted = _BEARER_RE.sub(rf"\1 \2{_REDACTED}\2", redacted)
+    redacted = _KV_RE.sub(rf"\1\2\3\4{_REDACTED}\4", redacted)
+    # Redact explicit env var assignment forms (e.g., COMFY_CLOUD_API_KEY=xxxx)
+    redacted = re.sub(r"(?i)\b(COMFY_CLOUD_API_KEY)\s*=\s*([^\s,;]+)", rf"\1={_REDACTED}", redacted)
+    # Redact common key/value secret forms in free text.
+    redacted = re.sub(
+        r"(?i)\b(api[_-]?key|apikey|password|passwd|token|secret|access[_-]?key|private[_-]?key)\b\s*[:=]\s*([^\s,;]+)",
+        rf"\1={_REDACTED}",
+        redacted,
+    )
+    # Redact Authorization headers / bearer tokens in text blobs.
+    redacted = re.sub(
+        r"(?i)\b(authorization)\b\s*[:=]\s*(bearer\s+)?([^\s,;]+)",
+        rf"\1: \2{_REDACTED}",
+        redacted,
+    )
+    # Redact standalone Comfy Cloud API key tokens that may appear in free-form text.
+    redacted = re.sub(r"(?i)\bcomfyui-[A-Za-z0-9._-]+\b", _REDACTED, redacted)
     return redacted
 
 
@@ -907,6 +965,8 @@ def _redact_sensitive(obj: Any) -> Any:
         return tuple(_redact_sensitive(v) for v in obj)
     if isinstance(obj, str):
         return _redact_sensitive_text(obj)
+    if isinstance(obj, BaseException):
+        return _redact_sensitive_text(str(obj))
     return obj
 
 
